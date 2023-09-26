@@ -10,44 +10,66 @@ import FirebaseFirestoreSwift
 
 @available(macOS 10.15, *)
 extension Firestore: MKFirestore {
-    func executeDocumentQuery<T>(_ query: T) async -> MKDocumentQueryResponse<T> where T : MKDocumentQuery {
-        let documentReference = self.document(query.document.path())
+    func executeQuery<T>(_ query: T) async -> MKFirestoreQueryResponse<T> where T : MKFirestoreQuery {
+        if query.firestorePath.isCollection {
+            return await executeCollectionQuery(query)
+        } else {
+            return await executeDocumentQuery(query)
+        }
+    }
+    
+    func executeQuery<T>(_ query: T, completion: @escaping (MKFirestoreQueryResponse<T>) -> Void) where T : MKFirestoreQuery {
+        Task {
+            if query.firestorePath.isCollection {
+                let response = await executeCollectionQuery(query)
+                completion(response)
+            } else {
+                let response = await executeDocumentQuery(query)
+                completion(response)
+            }
+        }
+    }
+    
+    
+   
+    
+    func executeDocumentQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
+        let documentReference = self.document(query.firestorePath.rawPath)
         do {
             let document = try await documentReference.getDocument()
             let result = try document.data(as: T.ResultData.self)
-            return MKDocumentQueryResponse(errorCode: nil, responseData: result)
+            return MKFirestoreQueryResponse(error: nil, responseData: result)
         } catch (let error) {
-            return MKDocumentQueryResponse(
-                errorCode: (error as? FirebaseFirestore.FirestoreErrorCode)?.code ?? .unknown,
-                responseData: nil)
-        }
-    }
-    
-    func executeDocumentQuery<T>(_ query: T, completion: @escaping (MKDocumentQueryResponse<T>) -> Void) where T : MKDocumentQuery {
-        
-    }
-    
-    func executeCollectionQuery<T: MKCollectionQuery>(_ query: T) async -> MKCollectionQueryResponse<T> {
-        let collectionReference = self.collection(query.collection.path())
-        do {
-            var results: [T.ResultData] = []
-            let documents = try await collectionReference.getDocuments().documents
-            for document in documents {
-                let result = try document.data(as: T.ResultData.self)
-                results.append(result)
+            if let firestoreError = error as? FirebaseFirestore.FirestoreErrorCode {
+                return MKFirestoreQueryResponse<T>(error: .firestoreError(firestoreError), responseData: nil)
+            } else {
+                return MKFirestoreQueryResponse<T>(error: .parsingError(error), responseData: nil)
             }
-            return MKCollectionQueryResponse(errorCode: nil, responseData: results)
-        } catch (let error) {
-            return MKCollectionQueryResponse(
-                errorCode: (error as? FirebaseFirestore.FirestoreErrorCode)?.code ?? .unknown,
-                responseData: nil)
         }
     }
-  
-    func executeCollectionQuery<T>(_ query: T, completion: @escaping (MKCollectionQueryResponse<T>) -> Void) where T : MKCollectionQuery {
-        Task {
-            let response = await executeCollectionQuery(query)
-            completion(response)
+    
+    func executeCollectionQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
+        let collectionReference = self.collection(query.firestorePath.rawPath)
+        do {
+            let documents = try await collectionReference.getDocuments().documents
+            // Create a dictionary to store the JSON representation
+            var jsonDictionary: [String: [String: Any]] = [:]
+            // Iterate through the documents and populate the JSON dictionary
+            for document in documents {
+                let documentID = document.documentID
+                let documentData = document.data()
+                
+                jsonDictionary[documentID] = documentData
+            }
+            let jsonData = try JSONSerialization.data(withJSONObject: jsonDictionary, options: .prettyPrinted)
+            let results = try JSONDecoder().decode(T.ResultData.self, from: jsonData)
+            return MKFirestoreQueryResponse(error: nil, responseData: results)
+        } catch (let error) {
+            if let firestoreError = error as? FirebaseFirestore.FirestoreErrorCode {
+                return MKFirestoreQueryResponse<T>(error: .firestoreError(firestoreError), responseData: nil)
+            } else {
+                return MKFirestoreQueryResponse<T>(error: .parsingError(error), responseData: nil)
+            }
         }
     }
 }

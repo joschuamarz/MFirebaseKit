@@ -8,45 +8,45 @@
 import FirebaseFirestore
 import FirebaseFirestoreSwift
 
-public protocol MKCollectionQuery {
-    associatedtype ResultData: Codable
-    var collection: MKFirestoreCollection { get }
-    var mockResult: [ResultData] { get }
+enum MKFirestoreError {
+    case firestoreError(FirestoreErrorCode)
+    case parsingError(Error)
 }
 
-struct MKCollectionQueryResponse<Query: MKCollectionQuery> {
-    let error: FirestoreErrorCode?
-    let responseData: [Query.ResultData]?
+public protocol MKFirestoreQuery {
+    associatedtype ResultData: Codable
     
-    init(errorCode: FirestoreErrorCode.Code?, responseData: [Query.ResultData]?) {
-        self.responseData = responseData
-        if let errorCode {
-            self.error = FirestoreErrorCode(errorCode)
-        } else {
-            self.error = nil
-        }
+    var firestorePath: MKFirestorePath { get }
+    var mockResultData: ResultData { get }
+}
+
+
+public class MKFirestorePath {
+    var rawPath: String
+    var isCollection: Bool
+    
+    init(path: String, isCollection: Bool) {
+        self.rawPath = path
+        self.isCollection = isCollection
+    }
+    
+    static func collectionPath(_ path: String) -> MKFirestorePath {
+        return MKFirestorePath(path: path, isCollection: true)
+    }
+    static func documentPath(_ path: String) -> MKFirestorePath {
+        return MKFirestorePath(path: path, isCollection: false)
     }
 }
 
-
-public protocol MKDocumentQuery {
-    associatedtype ResultData: Codable
-    var document: MKFirestoreDocument { get }
-    var mockResult: ResultData { get }
-}
-
-struct MKDocumentQueryResponse<Query: MKDocumentQuery> {
-    let error: FirestoreErrorCode?
+struct MKFirestoreQueryResponse<Query: MKFirestoreQuery> {
+    let error: MKFirestoreError?
     let responseData: Query.ResultData?
     
-    init(errorCode: FirestoreErrorCode.Code?, responseData: Query.ResultData?) {
+    init(error: MKFirestoreError?, responseData: Query.ResultData?) {
         self.responseData = responseData
-        if let errorCode {
-            self.error = FirestoreErrorCode(errorCode)
-        } else {
-            self.error = nil
-        }
+        self.error = error
     }
 }
+
 
 
