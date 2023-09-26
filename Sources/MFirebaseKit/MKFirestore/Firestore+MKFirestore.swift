@@ -35,8 +35,10 @@ extension Firestore: MKFirestore {
     
     private func executeDocumentQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
         let documentReference = self.document(query.firestorePath.rawPath)
+        print("$ MKFirestoreMock: Executing document Query with path \(query.firestorePath.rawPath)")
         do {
             let document = try await documentReference.getDocument()
+            print(document)
             let result = try document.data(as: T.ResultData.self)
             return MKFirestoreQueryResponse(error: nil, responseData: result)
         } catch (let error) {
@@ -50,6 +52,7 @@ extension Firestore: MKFirestore {
     
     private func executeCollectionQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
         let collectionReference = self.collection(query.firestorePath.rawPath)
+        print("$ MKFirestoreMock: Executing document Query with path \(query.firestorePath.rawPath)")
         do {
             let documents = try await collectionReference.getDocuments().documents
             // Create a dictionary to store the JSON representation
