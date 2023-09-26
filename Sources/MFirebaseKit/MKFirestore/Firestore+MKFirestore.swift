@@ -36,11 +36,8 @@ extension Firestore: MKFirestore {
     private func executeDocumentQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
         let documentReference = self.document(query.firestorePath.rawPath)
         do {
-            guard let json = try await documentReference.getDocument().data() else {
-                return MKFirestoreQueryResponse<T>(error: .firestoreError(FirestoreErrorCode(FirestoreErrorCode.dataLoss)), responseData: nil)
-            }
-            let jsonData = try JSONSerialization.data(withJSONObject: json, options: .prettyPrinted)
-            let result = try JSONDecoder().decode(T.ResultData.self, from: jsonData)
+            let document = try await documentReference.getDocument()
+            let result = try document.data(as: T.ResultData.self)
             return MKFirestoreQueryResponse(error: nil, responseData: result)
         } catch (let error) {
             if let firestoreError = error as? FirebaseFirestore.FirestoreErrorCode {
@@ -56,7 +53,7 @@ extension Firestore: MKFirestore {
         do {
             let documents = try await collectionReference.getDocuments().documents
             // Create a dictionary to store the JSON representation
-            var jsonArray: [[String: Any]] = documents.map({ $0.data()})
+            let jsonArray: [[String: Any]] = documents.map({ $0.data() })
             let jsonData = try JSONSerialization.data(withJSONObject: jsonArray, options: .prettyPrinted)
             let results = try JSONDecoder().decode(T.ResultData.self, from: jsonData)
             return MKFirestoreQueryResponse(error: nil, responseData: results)
