@@ -12,12 +12,20 @@ import FirebaseFirestoreSwift
 public class FirestoreMock: MKFirestore {
     var pendingDocumentQueries: [Any] = []
     var pendingCollectionQueries: [Any] = []
+    var autoRespond: Bool
+    
+    init(autoRespond: Bool = false) {
+        self.autoRespond = autoRespond
+    }
     
     // MARK: - Document Query
     
     public func executeQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
         print("$ MKFirestoreMock: Executing document Query with path \(query.firestorePath.rawPath)")
         let pendingQuery = MKPendingQuery(path: query.firestorePath.rawPath, query: query)
+        guard !autoRespond else {
+            return MKFirestoreQueryResponse(error: nil, responseData: query.mockResultData)
+        }
         pendingDocumentQueries.append(pendingQuery as Any)
         do {
             return try await withCheckedThrowingContinuation { continuation in
@@ -33,6 +41,10 @@ public class FirestoreMock: MKFirestore {
     public func executeQuery<T: MKFirestoreQuery>(_ query: T, completion: @escaping (MKFirestoreQueryResponse<T>) -> Void) {
         let path = query.firestorePath.rawPath
         print("$ MKFirestoreMock: Executing document Query with path \(path)")
+        guard !autoRespond else {
+            completion(MKFirestoreQueryResponse(error: nil, responseData: query.mockResultData))
+            return
+        }
         let pendingQuery = MKPendingQuery<T>(path: path, query: query, responseHandler: completion)
         pendingDocumentQueries.append(pendingQuery as Any)
     }
