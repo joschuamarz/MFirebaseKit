@@ -7,7 +7,7 @@
 
 import Foundation
 
-protocol MKFirestore {
+public protocol MKFirestore {
     func executeQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T>
     func executeQuery<T: MKFirestoreQuery>(_ query: T, completion: @escaping (MKFirestoreQueryResponse<T>)->Void)
 }

@@ -40,8 +40,8 @@ public class MKFirestorePath {
 }
 
 public struct MKFirestoreQueryResponse<Query: MKFirestoreQuery> {
-    let error: MKFirestoreError?
-    let responseData: Query.ResultData?
+    public let error: MKFirestoreError?
+    public let responseData: Query.ResultData?
     
     init(error: MKFirestoreError?, responseData: Query.ResultData?) {
         self.responseData = responseData
