@@ -53,15 +53,8 @@ extension Firestore: MKFirestore {
         do {
             let documents = try await collectionReference.getDocuments().documents
             // Create a dictionary to store the JSON representation
-            var jsonDictionary: [String: [String: Any]] = [:]
-            // Iterate through the documents and populate the JSON dictionary
-            for document in documents {
-                let documentID = document.documentID
-                let documentData = document.data()
-                
-                jsonDictionary[documentID] = documentData
-            }
-            let jsonData = try JSONSerialization.data(withJSONObject: jsonDictionary, options: .prettyPrinted)
+            var jsonArray: [[String: Any]] = documents.map({ $0.data()})
+            let jsonData = try JSONSerialization.data(withJSONObject: jsonArray, options: .prettyPrinted)
             let results = try JSONDecoder().decode(T.ResultData.self, from: jsonData)
             return MKFirestoreQueryResponse(error: nil, responseData: results)
         } catch (let error) {
