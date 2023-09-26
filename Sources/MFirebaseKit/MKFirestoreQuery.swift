@@ -8,7 +8,7 @@
 import FirebaseFirestore
 import FirebaseFirestoreSwift
 
-enum MKFirestoreError {
+public enum MKFirestoreError {
     case firestoreError(FirestoreErrorCode)
     case parsingError(Error)
 }
