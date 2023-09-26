@@ -14,7 +14,7 @@ public class FirestoreMock: MKFirestore {
     var pendingCollectionQueries: [Any] = []
     var autoRespond: Bool
     
-    init(autoRespond: Bool = false) {
+    public init(autoRespond: Bool = false) {
         self.autoRespond = autoRespond
     }
     
