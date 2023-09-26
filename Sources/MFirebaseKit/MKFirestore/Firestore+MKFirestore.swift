@@ -36,8 +36,11 @@ extension Firestore: MKFirestore {
     private func executeDocumentQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
         let documentReference = self.document(query.firestorePath.rawPath)
         do {
-            let document = try await documentReference.getDocument()
-            let result = try document.data(as: T.ResultData.self)
+            guard let json = try await documentReference.getDocument().data() else {
+                return MKFirestoreQueryResponse<T>(error: .firestoreError(FirestoreErrorCode(FirestoreErrorCode.dataLoss)), responseData: nil)
+            }
+            let jsonData = try JSONSerialization.data(withJSONObject: json, options: .prettyPrinted)
+            let result = try JSONDecoder().decode(T.ResultData.self, from: jsonData)
             return MKFirestoreQueryResponse(error: nil, responseData: result)
         } catch (let error) {
             if let firestoreError = error as? FirebaseFirestore.FirestoreErrorCode {
