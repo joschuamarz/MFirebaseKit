@@ -8,14 +8,14 @@
 import FirebaseFirestore
 import FirebaseFirestoreSwift
 
-@available(macOS 10.15, *)
-class FirestoreMock: MKFirestore {
+
+public class FirestoreMock: MKFirestore {
     var pendingDocumentQueries: [Any] = []
     var pendingCollectionQueries: [Any] = []
     
     // MARK: - Document Query
     
-    func executeQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
+    public func executeQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
         print("$ MKFirestoreMock: Executing document Query with path \(query.firestorePath.rawPath)")
         let pendingQuery = MKPendingQuery(path: query.firestorePath.rawPath, query: query)
         pendingDocumentQueries.append(pendingQuery as Any)
@@ -30,7 +30,7 @@ class FirestoreMock: MKFirestore {
         }
     }
     
-    func executeQuery<T: MKFirestoreQuery>(_ query: T, completion: @escaping (MKFirestoreQueryResponse<T>) -> Void) {
+    public func executeQuery<T: MKFirestoreQuery>(_ query: T, completion: @escaping (MKFirestoreQueryResponse<T>) -> Void) {
         let path = query.firestorePath.rawPath
         print("$ MKFirestoreMock: Executing document Query with path \(path)")
         let pendingQuery = MKPendingQuery<T>(path: path, query: query, responseHandler: completion)

@@ -30,15 +30,16 @@ public class MKFirestorePath {
         self.isCollection = isCollection
     }
     
-    static func collectionPath(_ path: String) -> MKFirestorePath {
+    public static func collectionPath(_ path: String) -> MKFirestorePath {
         return MKFirestorePath(path: path, isCollection: true)
     }
-    static func documentPath(_ path: String) -> MKFirestorePath {
+
+    public static func documentPath(_ path: String) -> MKFirestorePath {
         return MKFirestorePath(path: path, isCollection: false)
     }
 }
 
-struct MKFirestoreQueryResponse<Query: MKFirestoreQuery> {
+public struct MKFirestoreQueryResponse<Query: MKFirestoreQuery> {
     let error: MKFirestoreError?
     let responseData: Query.ResultData?
     

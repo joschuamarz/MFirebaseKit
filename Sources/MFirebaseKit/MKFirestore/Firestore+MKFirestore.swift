@@ -10,7 +10,7 @@ import FirebaseFirestoreSwift
 
 @available(macOS 10.15, *)
 extension Firestore: MKFirestore {
-    func executeQuery<T>(_ query: T) async -> MKFirestoreQueryResponse<T> where T : MKFirestoreQuery {
+    public func executeQuery<T>(_ query: T) async -> MKFirestoreQueryResponse<T> where T : MKFirestoreQuery {
         if query.firestorePath.isCollection {
             return await executeCollectionQuery(query)
         } else {
@@ -18,7 +18,7 @@ extension Firestore: MKFirestore {
         }
     }
     
-    func executeQuery<T>(_ query: T, completion: @escaping (MKFirestoreQueryResponse<T>) -> Void) where T : MKFirestoreQuery {
+    public func executeQuery<T>(_ query: T, completion: @escaping (MKFirestoreQueryResponse<T>) -> Void) where T : MKFirestoreQuery {
         Task {
             if query.firestorePath.isCollection {
                 let response = await executeCollectionQuery(query)
@@ -33,7 +33,7 @@ extension Firestore: MKFirestore {
     
    
     
-    func executeDocumentQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
+    private func executeDocumentQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
         let documentReference = self.document(query.firestorePath.rawPath)
         do {
             let document = try await documentReference.getDocument()
@@ -48,7 +48,7 @@ extension Firestore: MKFirestore {
         }
     }
     
-    func executeCollectionQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
+    private func executeCollectionQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
         let collectionReference = self.collection(query.firestorePath.rawPath)
         do {
             let documents = try await collectionReference.getDocuments().documents
