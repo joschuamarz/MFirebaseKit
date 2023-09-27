@@ -51,14 +51,16 @@ extension Firestore: MKFirestore {
         var collectionReference = self.collection(query.firestoreReference.rawPath)
         var firestoreQuery: Query?
         if let query = query as? (any MKAdvancedQuery) {
-            var startAfter: [Any] = []
             if let startAfterFieldName = query.startAfterFieldValue {
-                startAfter = [startAfterFieldName]
+                firestoreQuery = collectionReference
+                    .order(by: query.orderByFieldName, descending: query.orderDescending)
+                    .start(after: [startAfterFieldName])
+                    .limit(to: query.limit)
+            } else {
+                firestoreQuery = collectionReference
+                    .order(by: query.orderByFieldName, descending: query.orderDescending)
+                    .limit(to: query.limit)
             }
-            firestoreQuery = collectionReference
-                .order(by: query.orderByFieldName, descending: query.orderDescending)
-                .start(after: startAfter)
-                .limit(to: query.limit)
         }
         print("$ MKFirestore: Executing collection Query with path \(query.firestoreReference.rawPath)")
         do {
