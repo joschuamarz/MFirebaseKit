@@ -10,8 +10,9 @@ import FirebaseFirestoreSwift
 
 @available(macOS 10.15, *)
 extension Firestore: MKFirestore {
+    
     public func executeQuery<T>(_ query: T) async -> MKFirestoreQueryResponse<T> where T : MKFirestoreQuery {
-        if query.firestorePath.isCollection {
+        if query.firestoreReference is MKFirestoreCollectionReference {
             return await executeCollectionQuery(query)
         } else {
             return await executeDocumentQuery(query)
@@ -20,7 +21,7 @@ extension Firestore: MKFirestore {
     
     public func executeQuery<T>(_ query: T, completion: @escaping (MKFirestoreQueryResponse<T>) -> Void) where T : MKFirestoreQuery {
         Task {
-            if query.firestorePath.isCollection {
+            if query.firestoreReference is MKFirestoreCollectionReference {
                 let response = await executeCollectionQuery(query)
                 completion(response)
             } else {
@@ -34,12 +35,12 @@ extension Firestore: MKFirestore {
    
     
     private func executeDocumentQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
-        let documentReference = self.document(query.firestorePath.rawPath)
-        print("$ MKFirestore: Executing document Query with path \(query.firestorePath.rawPath)")
+        let documentReference = self.document(query.firestoreReference.rawPath)
+        print("$ MKFirestore: Executing document Query with path \(query.firestoreReference.rawPath)")
         do {
             let document = try await documentReference.getDocument()
             let result = try document.data(as: T.ResultData.self)
-            print("$ MKFirestore: Successfully finished document Query for path \(query.firestorePath.rawPath)")
+            print("$ MKFirestore: Successfully finished document Query for path \(query.firestoreReference.rawPath)")
             return MKFirestoreQueryResponse(error: nil, responseData: result)
         } catch (let error) {
             return handleError(error, for: query)
@@ -47,15 +48,21 @@ extension Firestore: MKFirestore {
     }
     
     private func executeCollectionQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
-        let collectionReference = self.collection(query.firestorePath.rawPath)
-        print("$ MKFirestore: Executing collection Query with path \(query.firestorePath.rawPath)")
+        let collectionReference = self.collection(query.firestoreReference.rawPath)
+        if let query = query as? (any MKAdvancedQuery) {
+            collectionReference.order(by: query.orderByFieldName, descending: query.orderDescending)
+            if let startAfterFieldValue = query.startAfterFieldValue {
+                collectionReference.start(after: [startAfterFieldValue])
+            }
+            collectionReference.limit(to: query.limit)
+        }
+        print("$ MKFirestore: Executing collection Query with path \(query.firestoreReference.rawPath)")
         do {
             let documents = try await collectionReference.getDocuments().documents
-            // Create a dictionary to store the JSON representation
             let jsonArray: [[String: Any]] = documents.map({ $0.data() })
             let jsonData = try JSONSerialization.data(withJSONObject: jsonArray, options: .prettyPrinted)
             let results = try JSONDecoder().decode(T.ResultData.self, from: jsonData)
-            print("$ MKFirestore: Successfully finished document Query for path \(query.firestorePath.rawPath)")
+            print("$ MKFirestore: Successfully finished document Query for path \(query.firestoreReference.rawPath)")
             print("$ MKFirestore: Fetched \(jsonArray.count) objects")
             return MKFirestoreQueryResponse(error: nil, responseData: results)
         } catch (let error) {
@@ -64,7 +71,7 @@ extension Firestore: MKFirestore {
     }
     
     private func handleError<T: MKFirestoreQuery>(_ error: Error, for query: T) -> MKFirestoreQueryResponse<T> {
-        print("$ MKFirestore: Finished collection Query for path \(query.firestorePath.rawPath) with Error")
+        print("$ MKFirestore: Finished collection Query for path \(query.firestoreReference.rawPath) with Error")
         var specificError: MKFirestoreError
         if let firestoreError = error as? FirebaseFirestore.FirestoreErrorCode {
             specificError = .firestoreError(firestoreError)

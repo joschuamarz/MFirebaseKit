@@ -9,7 +9,6 @@ import XCTest
 @testable import MFirebaseKit
 
 final class MKFirestoreMockTest: XCTestCase {
-    
     func testDocumentQuery() {
         let firestore = FirestoreMock()
         let query = TestDocumentQuery()
@@ -125,7 +124,7 @@ final class MKFirestoreMockTest: XCTestCase {
     // MARK: - Helper
     
     struct TestDocumentQuery: MKFirestoreQuery {
-        var firestorePath: MKFirestorePath = .collectionPath("Collection1/Document1")
+        var firestoreReference: MKFirestoreReference = .collection("Collection1").document("doc")
         
         var mockResultData: TestQueryResultDataType = .init(name: "Test")
         
@@ -135,7 +134,7 @@ final class MKFirestoreMockTest: XCTestCase {
     struct TestCollectionQuery: MKFirestoreQuery {
         typealias ResultData = [TestQueryResultDataType]
         
-        var firestorePath: MKFirestorePath = .collectionPath("Collection1/Document1/Collection2")
+        var firestoreReference: MKFirestoreReference = .collection("A").document("B").collection("C")
         
         var mockResultData: [TestQueryResultDataType] = [
             .init(name: "A"),
@@ -147,6 +146,5 @@ final class MKFirestoreMockTest: XCTestCase {
     struct TestQueryResultDataType: Codable {
         let name: String
     }
-    
     
 }

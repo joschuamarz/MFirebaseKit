@@ -6,8 +6,25 @@
 //
 
 import Foundation
+import FirebaseFirestore
 
 public protocol MKFirestore {
     func executeQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T>
     func executeQuery<T: MKFirestoreQuery>(_ query: T, completion: @escaping (MKFirestoreQueryResponse<T>)->Void)
+}
+
+public struct MKPaginatedQuery<Query: MKFirestoreQuery>: MKFirestoreQuery {
+    public typealias ResultData = Query.ResultData
+    
+    public let firestoreReference: MKFirestoreReference
+    public let mockResultData: Query.ResultData
+    let limit: Int
+    let lastDocument: DocumentSnapshot?
+    
+    init(query: Query, limit: Int, startAfter document: DocumentSnapshot?) {
+        self.firestoreReference = query.firestoreReference
+        self.mockResultData = query.mockResultData
+        self.limit = limit
+        self.lastDocument = document
+    }
 }
