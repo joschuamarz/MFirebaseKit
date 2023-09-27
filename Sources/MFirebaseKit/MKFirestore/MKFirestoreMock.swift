@@ -9,7 +9,7 @@ import FirebaseFirestore
 import FirebaseFirestoreSwift
 
 
-public class FirestoreMock: MKFirestore {
+public class MKFirestoreMock: MKFirestore {
     var pendingDocumentQueries: [Any] = []
     var pendingCollectionQueries: [Any] = []
     var autoRespond: Bool

@@ -31,9 +31,6 @@ extension Firestore: MKFirestore {
         }
     }
     
-    
-   
-    
     private func executeDocumentQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
         let documentReference = self.document(query.firestoreReference.rawPath)
         print("$ MKFirestore: Executing document Query with path \(query.firestoreReference.rawPath)")
@@ -48,19 +45,21 @@ extension Firestore: MKFirestore {
     }
     
     private func executeCollectionQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
-        var collectionReference = self.collection(query.firestoreReference.rawPath)
+        let collectionReference = self.collection(query.firestoreReference.rawPath)
         var firestoreQuery: Query?
-        if let query = query as? (any MKAdvancedQuery) {
-            if let startAfterFieldName = query.startAfterFieldValue {
-                firestoreQuery = collectionReference
-                    .order(by: query.orderByFieldName, descending: query.orderDescending)
-                    .start(after: [startAfterFieldName])
-                    .limit(to: query.limit)
-            } else {
-                firestoreQuery = collectionReference
-                    .order(by: query.orderByFieldName, descending: query.orderDescending)
-                    .limit(to: query.limit)
+        if let query = query as? (any MKAdvancedFirestoreQuery) {
+            // Order
+            firestoreQuery = collectionReference.order(by: query.orderByFieldName, descending: query.orderDescending)
+            // Filter
+            for filter in query.filters {
+                firestoreQuery = firestoreQuery?.applyFilter(filter)
             }
+            // Start After
+            if let startAfterFieldName = query.startAfterFieldValue {
+                firestoreQuery = firestoreQuery?.start(after: [startAfterFieldName])
+            }
+            // Limit
+            firestoreQuery = firestoreQuery?.limit(to: query.limit)
         }
         print("$ MKFirestore: Executing collection Query with path \(query.firestoreReference.rawPath)")
         do {
