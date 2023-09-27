@@ -47,7 +47,7 @@ extension Firestore: MKFirestore {
     private func executeCollectionQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
         let collectionReference = self.collection(query.firestoreReference.rawPath)
         var firestoreQuery: Query?
-        if let query = query as? (any MKAFirestoreAdvancedQuery) {
+        if let query = query as? (any MKFirestoreAdvancedQuery) {
             // Order
             firestoreQuery = collectionReference.order(by: query.orderByFieldName, descending: query.orderDescending)
             // Filter

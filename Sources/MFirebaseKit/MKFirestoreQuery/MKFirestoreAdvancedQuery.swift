@@ -7,7 +7,7 @@
 
 import FirebaseFirestore
 
-public protocol MKAFirestoreAdvancedQuery: MKFirestoreQuery {
+public protocol MKFirestoreAdvancedQuery: MKFirestoreQuery {
     /// The name of the field that should be used for ordering the data
     var orderByFieldName: String { get }
     /// Boolean value if the data should be ordered descending

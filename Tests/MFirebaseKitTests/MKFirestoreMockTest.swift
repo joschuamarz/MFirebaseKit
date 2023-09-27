@@ -143,7 +143,7 @@ final class MKFirestoreMockTest: XCTestCase {
         ]
     }
     
-    struct TestAdvancedQuery: MKAFirestoreAdvancedQuery {
+    struct TestAdvancedQuery: MKFirestoreAdvancedQuery {
         typealias ResultData = [TestQueryResultDataType]
         
         var orderByFieldName: String = "title"
