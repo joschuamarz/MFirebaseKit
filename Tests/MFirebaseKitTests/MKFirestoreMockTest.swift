@@ -143,7 +143,7 @@ final class MKFirestoreMockTest: XCTestCase {
         ]
     }
     
-    struct TestAdvancedQuery: MKAdvancedFirestoreQuery {
+    struct TestAdvancedQuery: MKAFirestoreAdvancedQuery {
         typealias ResultData = [TestQueryResultDataType]
         
         var orderByFieldName: String = "title"
@@ -155,7 +155,6 @@ final class MKFirestoreMockTest: XCTestCase {
         var limit: Int = 1
         
         var filters: [MFirebaseKit.MKFirestoreQueryFilter] = [
-            .init(fieldName: "name", predicate: .isEqualTo("Test"))
         ]
         
         var firestoreReference: MFirebaseKit.MKFirestoreReference
