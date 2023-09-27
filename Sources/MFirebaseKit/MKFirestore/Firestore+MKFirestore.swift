@@ -48,17 +48,26 @@ extension Firestore: MKFirestore {
     }
     
     private func executeCollectionQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
-        let collectionReference = self.collection(query.firestoreReference.rawPath)
+        var collectionReference = self.collection(query.firestoreReference.rawPath)
+        var firestoreQuery: Query?
         if let query = query as? (any MKAdvancedQuery) {
-            collectionReference.order(by: query.orderByFieldName, descending: query.orderDescending)
-            if let startAfterFieldValue = query.startAfterFieldValue {
-                collectionReference.start(after: [startAfterFieldValue])
+            var startAfter: [Any] = []
+            if let startAfterFieldName = query.startAfterFieldValue {
+                startAfter = [startAfterFieldName]
             }
-            collectionReference.limit(to: query.limit)
+            firestoreQuery = collectionReference
+                .order(by: query.orderByFieldName, descending: query.orderDescending)
+                .start(after: startAfter)
+                .limit(to: query.limit)
         }
         print("$ MKFirestore: Executing collection Query with path \(query.firestoreReference.rawPath)")
         do {
-            let documents = try await collectionReference.getDocuments().documents
+            let documents: [QueryDocumentSnapshot]
+            if let firestoreQuery {
+                documents = try await firestoreQuery.getDocuments().documents
+            } else {
+                documents = try await collectionReference.getDocuments().documents
+            }
             let jsonArray: [[String: Any]] = documents.map({ $0.data() })
             let jsonData = try JSONSerialization.data(withJSONObject: jsonArray, options: .prettyPrinted)
             let results = try JSONDecoder().decode(T.ResultData.self, from: jsonData)
