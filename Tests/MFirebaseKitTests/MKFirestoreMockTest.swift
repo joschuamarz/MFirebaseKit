@@ -58,69 +58,18 @@ final class MKFirestoreMockTest: XCTestCase {
         
     }
     
-     /*
-     // MARK: - Async
-     func testAsyncDocumentQuery() {
-     let firestore = FirestoreMock()
-     let query = TestDocumentQuery()
-     let dataExpectation = XCTestExpectation(description: "Data arrived")
-     Task {
-     let response = await firestore.executeDocumentQuery(query)
-     if response.responseData != nil {
-     dataExpectation.fulfill()
-     }
-     }
-     sleep(1)
-     firestore.respond(to: query, with: query.mockResult)
-     wait(for: [dataExpectation], timeout: 2)
-     }
-     
-     func testAsyncUnauthenticatedDocumentQuery() {
-     let firestore = FirestoreMock()
-     let query = TestDocumentQuery()
-     let errorExpectation = XCTestExpectation(description: "Unauthenticated error occured")
-     Task {
-     let response = await firestore.executeDocumentQuery(query)
-     if response.error?.code == .unauthenticated {
-     errorExpectation.fulfill()
-     }
-     }
-     sleep(1)
-     firestore.respond(to: query, with: .unauthenticated)
-     wait(for: [errorExpectation], timeout: 2)
-     }
-     
-     func testAsyncCollectionQuery() {
-     let firestore = FirestoreMock()
-     let query = TestCollectionQuery()
-     let dataExpectation = XCTestExpectation(description: "Data arrived")
-     Task {
-     let response = await firestore.executeCollectionQuery(query)
-     if response.responseData != nil {
-     dataExpectation.fulfill()
-     }
-     }
-     sleep(1)
-     firestore.respond(to: query, with: query.mockResult)
-     wait(for: [dataExpectation], timeout: 2)
-     }
-     
-     func testAsyncUnauthenticatedCollectionQuery() {
-     let firestore = FirestoreMock()
-     let query = TestCollectionQuery()
-     let errorExpectation = XCTestExpectation(description: "Unauthenticated error occured")
-     Task {
-     let response = await firestore.executeCollectionQuery(query)
-     if response.error?.code == .unauthenticated {
-     errorExpectation.fulfill()
-     }
-     }
-     sleep(1)
-     firestore.respond(to: query, with: .unauthenticated)
-     wait(for: [errorExpectation], timeout: 2)
-     }
-     }
-     */
+    func testDocumentPermutationAutoError() {
+        let firestore = MKFirestoreMock(autoResponse: .error(.firestoreError(.init(.aborted))))
+        let permutation = TestDocumentPermutation()
+        var response: MKFirestorePermutationResponse?
+        firestore.executePermutation(permutation) { newResponse in
+            response = newResponse
+        }
+        
+        XCTAssertNil(response?.documentId)
+        XCTAssertNotNil(response?.error)
+    }
+    
     // MARK: - Helper
     
     struct TestDocumentQuery: MKFirestoreQuery {
@@ -166,4 +115,18 @@ final class MKFirestoreMockTest: XCTestCase {
         let name: String
     }
     
+    struct TestDocumentPermutation: MKFirestorePermutation {
+        var firestoreReference: MFirebaseKit.MKFirestoreReference = .collection("Collection").document("Document")
+        
+        var operation: MFirebaseKit.MKFirestorePermutationOperation = .updateFields([
+            .increment(fieldName: "test", by: 1),
+            .update(fieldName: "test 2", with: "neu")
+        ], merge: true)
+    }
+    
+    struct TestCollectionPermutation: MKFirestorePermutation {
+        var firestoreReference: MFirebaseKit.MKFirestoreReference = .collection("Collection")
+        
+        var operation: MFirebaseKit.MKFirestorePermutationOperation = .addDocument([:])
+    }
 }

@@ -15,6 +15,10 @@ public class MKFirestoreReference {
     public static func collection(_ name: String) -> MKFirestoreCollectionReference {
         return MKFirestoreCollectionReference(rawPath: name)
     }
+    
+    var leafId: String? {
+        return rawPath.components(separatedBy: "/").last
+    }
 }
 
 public class MKFirestoreCollectionReference: MKFirestoreReference {

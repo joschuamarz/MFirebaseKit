@@ -8,7 +8,11 @@
 import FirebaseFirestore
 import FirebaseFirestoreSwift
 
-public protocol MKFirestoreQuery {
+public protocol MKFirestoreOperation {
+    var firestoreReference: MKFirestoreReference { get }
+}
+
+public protocol MKFirestoreQuery: MKFirestoreOperation {
     associatedtype ResultData: Codable
     /// Reference to the Document or Collection
     var firestoreReference: MKFirestoreReference { get }

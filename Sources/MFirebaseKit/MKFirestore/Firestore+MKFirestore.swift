@@ -11,6 +11,59 @@ import FirebaseFirestoreSwift
 @available(macOS 10.15, *)
 extension Firestore: MKFirestore {
     
+    // MARK: - Permutations
+    
+    public func executePermutation(_ permutation: MKFirestorePermutation) async -> MKFirestorePermutationResponse {
+        if permutation.firestoreReference is MKFirestoreCollectionReference {
+            return await executeCollectionPermutation(permutation)
+        } else {
+            return await executeDocumentPermutation(permutation)
+        }
+    }
+    
+    public func executePermutation(_ permutation: MKFirestorePermutation, completion: @escaping (MKFirestorePermutationResponse) -> Void) {
+        Task {
+            if permutation.firestoreReference is MKFirestoreCollectionReference {
+                let response = await executeCollectionPermutation(permutation)
+                completion(response)
+            } else {
+                let response = await executeDocumentPermutation(permutation)
+                completion(response)
+            }
+        }
+    }
+    
+    private func executeCollectionPermutation(_ permutation: MKFirestorePermutation) async -> MKFirestorePermutationResponse {
+        do {
+            if let data = permutation.operation.data {
+                let documentId = try await self.collection(permutation.firestoreReference.rawPath).addDocument(data: data).documentID
+                return MKFirestorePermutationResponse(documentId: documentId, error: nil)
+            } else if let object = permutation.operation.object {
+                let documentId = try self.collection(permutation.firestoreReference.rawPath).addDocument(from: object).documentID
+                return MKFirestorePermutationResponse(documentId: documentId, error: nil)
+            }
+            return MKFirestorePermutationResponse(documentId: nil, error: .firestoreError(FirestoreErrorCode(FirestoreErrorCode.invalidArgument)))
+        } catch (let error) {
+            return MKFirestorePermutationResponse(documentId: nil, error: handleError(error, for: permutation))
+        }
+    }
+    
+    private func executeDocumentPermutation(_ permutation: MKFirestorePermutation) async -> MKFirestorePermutationResponse {
+        do {
+            if let data = permutation.operation.data {
+                try await self.document(permutation.firestoreReference.rawPath).setData(data, merge: permutation.operation.merge)
+                return MKFirestorePermutationResponse(documentId: permutation.firestoreReference.leafId, error: nil)
+            } else if let object = permutation.operation.object {
+                try self.document(permutation.firestoreReference.rawPath).setData(from: object, merge: permutation.operation.merge)
+                return MKFirestorePermutationResponse(documentId: permutation.firestoreReference.leafId, error: nil)
+            }
+            return MKFirestorePermutationResponse(documentId: nil, error: .firestoreError(FirestoreErrorCode(FirestoreErrorCode.invalidArgument)))
+        } catch (let error) {
+            return MKFirestorePermutationResponse(documentId: nil, error: handleError(error, for: permutation))
+        }
+    }
+    
+    // MARK: - Queries
     public func executeQuery<T>(_ query: T) async -> MKFirestoreQueryResponse<T> where T : MKFirestoreQuery {
         if query.firestoreReference is MKFirestoreCollectionReference {
             return await executeCollectionQuery(query)
@@ -40,7 +93,7 @@ extension Firestore: MKFirestore {
             print("$ MKFirestore: Successfully finished document Query for path \(query.firestoreReference.rawPath)")
             return MKFirestoreQueryResponse(error: nil, responseData: result)
         } catch (let error) {
-            return handleError(error, for: query)
+            return MKFirestoreQueryResponse<T>(error: handleError(error, for: query), responseData: nil)
         }
     }
     
@@ -76,11 +129,12 @@ extension Firestore: MKFirestore {
             print("$ MKFirestore: Fetched \(jsonArray.count) objects")
             return MKFirestoreQueryResponse(error: nil, responseData: results)
         } catch (let error) {
-            return handleError(error, for: query)
+            return MKFirestoreQueryResponse<T>(error: handleError(error, for: query), responseData: nil)
         }
     }
     
-    private func handleError<T: MKFirestoreQuery>(_ error: Error, for query: T) -> MKFirestoreQueryResponse<T> {
+    // MARK: - Handle Error
+    private func handleError<T: MKFirestoreOperation>(_ error: Error, for query: T) -> MKFirestoreError {
         print("$ MKFirestore: Finished collection Query for path \(query.firestoreReference.rawPath) with Error")
         var specificError: MKFirestoreError
         if let firestoreError = error as? FirebaseFirestore.FirestoreErrorCode {
@@ -89,6 +143,6 @@ extension Firestore: MKFirestore {
             specificError = .parsingError(error)
         }
         print("$ MKFirestore: \(specificError.localizedDescription)")
-        return MKFirestoreQueryResponse<T>(error: specificError, responseData: nil)
+        return specificError
     }
 }
