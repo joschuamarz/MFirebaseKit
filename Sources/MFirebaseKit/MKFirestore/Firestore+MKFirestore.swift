@@ -11,55 +11,56 @@ import FirebaseFirestoreSwift
 @available(macOS 10.15, *)
 extension Firestore: MKFirestore {
     
-    // MARK: - Permutations
+    // MARK: - Mutations
     
-    public func executePermutation(_ permutation: MKFirestorePermutation) async -> MKFirestorePermutationResponse {
-        if permutation.firestoreReference is MKFirestoreCollectionReference {
-            return await executeCollectionPermutation(permutation)
+    
+    public func executeMutation(_ mutation: MKFirestoreMutation) async -> MKFirestoreMutationResponse {
+        if mutation.firestoreReference is MKFirestoreCollectionReference {
+            return await executeCollectionMutation(mutation)
         } else {
-            return await executeDocumentPermutation(permutation)
+            return await executeDocumentMutation(mutation)
         }
     }
     
-    public func executePermutation(_ permutation: MKFirestorePermutation, completion: @escaping (MKFirestorePermutationResponse) -> Void) {
+    public func executeMutation(_ mutation: MKFirestoreMutation, completion: @escaping (MKFirestoreMutationResponse) -> Void) {
         Task {
-            if permutation.firestoreReference is MKFirestoreCollectionReference {
-                let response = await executeCollectionPermutation(permutation)
+            if mutation.firestoreReference is MKFirestoreCollectionReference {
+                let response = await executeCollectionMutation(mutation)
                 completion(response)
             } else {
-                let response = await executeDocumentPermutation(permutation)
+                let response = await executeDocumentMutation(mutation)
                 completion(response)
             }
         }
     }
     
-    private func executeCollectionPermutation(_ permutation: MKFirestorePermutation) async -> MKFirestorePermutationResponse {
+    private func executeCollectionMutation(_ mutation: MKFirestoreMutation) async -> MKFirestoreMutationResponse {
         do {
-            if let data = permutation.operation.data {
-                let documentId = try await self.collection(permutation.firestoreReference.rawPath).addDocument(data: data).documentID
-                return MKFirestorePermutationResponse(documentId: documentId, error: nil)
-            } else if let object = permutation.operation.object {
-                let documentId = try self.collection(permutation.firestoreReference.rawPath).addDocument(from: object).documentID
-                return MKFirestorePermutationResponse(documentId: documentId, error: nil)
+            if let data = mutation.operation.data {
+                let documentId = try await self.collection(mutation.firestoreReference.rawPath).addDocument(data: data).documentID
+                return MKFirestoreMutationResponse(documentId: documentId, error: nil)
+            } else if let object = mutation.operation.object {
+                let documentId = try self.collection(mutation.firestoreReference.rawPath).addDocument(from: object).documentID
+                return MKFirestoreMutationResponse(documentId: documentId, error: nil)
             }
-            return MKFirestorePermutationResponse(documentId: nil, error: .firestoreError(FirestoreErrorCode(FirestoreErrorCode.invalidArgument)))
+            return MKFirestoreMutationResponse(documentId: nil, error: .firestoreError(FirestoreErrorCode(FirestoreErrorCode.invalidArgument)))
         } catch (let error) {
-            return MKFirestorePermutationResponse(documentId: nil, error: handleError(error, for: permutation))
+            return MKFirestoreMutationResponse(documentId: nil, error: handleError(error, for: mutation))
         }
     }
     
-    private func executeDocumentPermutation(_ permutation: MKFirestorePermutation) async -> MKFirestorePermutationResponse {
+    private func executeDocumentMutation(_ mutation: MKFirestoreMutation) async -> MKFirestoreMutationResponse {
         do {
-            if let data = permutation.operation.data {
-                try await self.document(permutation.firestoreReference.rawPath).setData(data, merge: permutation.operation.merge)
-                return MKFirestorePermutationResponse(documentId: permutation.firestoreReference.leafId, error: nil)
-            } else if let object = permutation.operation.object {
-                try self.document(permutation.firestoreReference.rawPath).setData(from: object, merge: permutation.operation.merge)
-                return MKFirestorePermutationResponse(documentId: permutation.firestoreReference.leafId, error: nil)
+            if let data = mutation.operation.data {
+                try await self.document(mutation.firestoreReference.rawPath).setData(data, merge: mutation.operation.merge)
+                return MKFirestoreMutationResponse(documentId: mutation.firestoreReference.leafId, error: nil)
+            } else if let object = mutation.operation.object {
+                try self.document(mutation.firestoreReference.rawPath).setData(from: object, merge: mutation.operation.merge)
+                return MKFirestoreMutationResponse(documentId: mutation.firestoreReference.leafId, error: nil)
             }
-            return MKFirestorePermutationResponse(documentId: nil, error: .firestoreError(FirestoreErrorCode(FirestoreErrorCode.invalidArgument)))
+            return MKFirestoreMutationResponse(documentId: nil, error: .firestoreError(FirestoreErrorCode(FirestoreErrorCode.invalidArgument)))
         } catch (let error) {
-            return MKFirestorePermutationResponse(documentId: nil, error: handleError(error, for: permutation))
+            return MKFirestoreMutationResponse(documentId: nil, error: handleError(error, for: mutation))
         }
     }
     

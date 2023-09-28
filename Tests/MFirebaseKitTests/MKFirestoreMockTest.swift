@@ -61,8 +61,8 @@ final class MKFirestoreMockTest: XCTestCase {
     func testDocumentPermutationAutoError() {
         let firestore = MKFirestoreMock(autoResponse: .error(.firestoreError(.init(.aborted))))
         let permutation = TestDocumentPermutation()
-        var response: MKFirestorePermutationResponse?
-        firestore.executePermutation(permutation) { newResponse in
+        var response: MKFirestoreMutationResponse?
+        firestore.executeMutation(permutation) { newResponse in
             response = newResponse
         }
         
@@ -115,18 +115,18 @@ final class MKFirestoreMockTest: XCTestCase {
         let name: String
     }
     
-    struct TestDocumentPermutation: MKFirestorePermutation {
+    struct TestDocumentPermutation: MKFirestoreMutation {
         var firestoreReference: MFirebaseKit.MKFirestoreReference = .collection("Collection").document("Document")
         
-        var operation: MFirebaseKit.MKFirestorePermutationOperation = .updateFields([
+        var operation: MFirebaseKit.MKFirestoreMutationOperation = .updateFields([
             .increment(fieldName: "test", by: 1),
             .update(fieldName: "test 2", with: "neu")
         ], merge: true)
     }
     
-    struct TestCollectionPermutation: MKFirestorePermutation {
+    struct TestCollectionPermutation: MKFirestoreMutation {
         var firestoreReference: MFirebaseKit.MKFirestoreReference = .collection("Collection")
         
-        var operation: MFirebaseKit.MKFirestorePermutationOperation = .addDocument([:])
+        var operation: MFirebaseKit.MKFirestoreMutationOperation = .addDocument([:])
     }
 }

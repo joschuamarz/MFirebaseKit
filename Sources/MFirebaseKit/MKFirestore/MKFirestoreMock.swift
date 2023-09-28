@@ -14,7 +14,7 @@ public class MKFirestoreMock: MKFirestore {
         case success
         case error(MKFirestoreError)
     }
-    var pendingPermutations: [MKPendingPermutation] = []
+    var pendingMutations: [MKPendingMutation] = []
     var pendingDocumentQueries: [Any] = []
     var pendingCollectionQueries: [Any] = []
     var autoResponse: AutoResponse?
@@ -25,79 +25,79 @@ public class MKFirestoreMock: MKFirestore {
     
     // MARK: - Document Query
     
-    public func executePermutation(_ permutation: MKFirestorePermutation) async -> MKFirestorePermutationResponse {
-        print("$ MKFirestoreMock: Executing Permutation with path \(permutation.firestoreReference.rawPath)")
+    public func executeMutation(_ mutation: MKFirestoreMutation) async -> MKFirestoreMutationResponse {
+        print("$ MKFirestoreMock: Executing Mutation with path \(mutation.firestoreReference.rawPath)")
         
         if let autoResponse {
             switch autoResponse {
             case .success:
-                print("$ MKFirestoreMock: Successfully finished Permutation for path \(permutation.firestoreReference.rawPath)")
-                return MKFirestorePermutationResponse(
-                    documentId: permutation.firestoreReference is MKFirestoreCollectionReference ? "NEW-DOCUMENT-ID" : permutation.firestoreReference.leafId,
+                print("$ MKFirestoreMock: Successfully finished Mutation for path \(mutation.firestoreReference.rawPath)")
+                return MKFirestoreMutationResponse(
+                    documentId: mutation.firestoreReference is MKFirestoreCollectionReference ? "NEW-DOCUMENT-ID" : mutation.firestoreReference.leafId,
                     error: nil)
             case .error(let error):
-                print("$ MKFirestoreMock: Finished Permutation for path \(permutation.firestoreReference.rawPath) with error")
+                print("$ MKFirestoreMock: Finished Mutation for path \(mutation.firestoreReference.rawPath) with error")
                 print("$ MKFirestoreMock: \(error.localizedDescription)")
-                return MKFirestorePermutationResponse(documentId: nil, error: error)
+                return MKFirestoreMutationResponse(documentId: nil, error: error)
             }
         }
         
-        let pendingPermutation = MKPendingPermutation(path: permutation.firestoreReference.rawPath, permutation: permutation)
-        self.pendingPermutations.append(pendingPermutation)
+        let pendingMutation = MKPendingMutation(path: mutation.firestoreReference.rawPath, mutation: mutation)
+        self.pendingMutations.append(pendingMutation)
         do {
             return try await withCheckedThrowingContinuation { continuation in
-                pendingPermutation.responseHandler = { error in
+                pendingMutation.responseHandler = { error in
                     if let error {
-                        continuation.resume(returning: MKFirestorePermutationResponse(
+                        continuation.resume(returning: MKFirestoreMutationResponse(
                             documentId: nil,
                             error: error))
                     } else {
-                        continuation.resume(returning: MKFirestorePermutationResponse(
-                            documentId: permutation.firestoreReference is MKFirestoreCollectionReference ? "NEW-DOCUMENT-ID" : permutation.firestoreReference.leafId,
+                        continuation.resume(returning: MKFirestoreMutationResponse(
+                            documentId: mutation.firestoreReference is MKFirestoreCollectionReference ? "NEW-DOCUMENT-ID" : mutation.firestoreReference.leafId,
                             error: nil))
                     }
                 }
             }
         } catch {
-            return MKFirestorePermutationResponse(
+            return MKFirestoreMutationResponse(
                 documentId: nil,
                 error: .firestoreError(FirestoreErrorCode(FirestoreErrorCode.unknown)))
         }
     }
     
-    public func executePermutation(_ permutation: MKFirestorePermutation, completion: @escaping (MKFirestorePermutationResponse) -> Void) {
-        let path = permutation.firestoreReference.rawPath
-        print("$ MKFirestoreMock: Executing Permutation with path \(path)")
+    public func executeMutation(_ mutation: MKFirestoreMutation, completion: @escaping (MKFirestoreMutationResponse) -> Void) {
+        let path = mutation.firestoreReference.rawPath
+        print("$ MKFirestoreMock: Executing Mutation with path \(path)")
         if let autoResponse {
             switch autoResponse {
             case .success:
-                print("$ MKFirestoreMock: Successfully finished Permutation for path \(permutation.firestoreReference.rawPath)")
-                let response = MKFirestorePermutationResponse(
-                    documentId: permutation.firestoreReference is MKFirestoreCollectionReference ? "NEW-DOCUMENT-ID" : permutation.firestoreReference.leafId,
+                print("$ MKFirestoreMock: Successfully finished Mutation for path \(mutation.firestoreReference.rawPath)")
+                let response = MKFirestoreMutationResponse(
+                    documentId: mutation.firestoreReference is MKFirestoreCollectionReference ? "NEW-DOCUMENT-ID" : mutation.firestoreReference.leafId,
                     error: nil)
                 completion(response)
             case .error(let error):
-                print("$ MKFirestoreMock: Finished Permutation for path \(permutation.firestoreReference.rawPath) with error")
+                print("$ MKFirestoreMock: Finished Mutation for path \(mutation.firestoreReference.rawPath) with error")
                 print("$ MKFirestoreMock: \(error.localizedDescription)")
-                let response = MKFirestorePermutationResponse(documentId: nil, error: error)
+                let response = MKFirestoreMutationResponse(documentId: nil, error: error)
                 completion(response)
             }
             return
         }
-        let pendingPermutation = MKPendingPermutation(path: path, permutation: permutation, responseHandler: { error in
+        let pendingMutation = MKPendingMutation(path: path, mutation: mutation, responseHandler: { error in
             if let error {
-                let response = MKFirestorePermutationResponse(
+                let response = MKFirestoreMutationResponse(
                     documentId: nil,
                     error: error)
                 completion(response)
             } else {
-                let response = MKFirestorePermutationResponse(
-                    documentId: permutation.firestoreReference is MKFirestoreCollectionReference ? "NEW-DOCUMENT-ID" : permutation.firestoreReference.leafId,
+                let response = MKFirestoreMutationResponse(
+                    documentId: mutation.firestoreReference is MKFirestoreCollectionReference ? "NEW-DOCUMENT-ID" : mutation.firestoreReference.leafId,
                     error: nil)
                 completion(response)
             }
         })
-        pendingPermutations.append(pendingPermutation)
+        pendingMutations.append(pendingMutation)
     }
     
     public func executeQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
@@ -130,19 +130,19 @@ public class MKFirestoreMock: MKFirestore {
     
     
     // MARK: - Respond Document
-    public func respond(to permutation: MKFirestorePermutation, with error: FirestoreErrorCode.Code?) {
-        if let pendingPermutation = pendingPermutations.first(where: { $0.path == permutation.firestoreReference.rawPath }) {
+    public func respond(to mutation: MKFirestoreMutation, with error: FirestoreErrorCode.Code?) {
+        if let pendingMutation = pendingMutations.first(where: { $0.path == mutation.firestoreReference.rawPath }) {
             var firestoreError: MKFirestoreError? = nil
             if let error {
                 firestoreError = .firestoreError(FirestoreErrorCode(error))
             }
             if let firestoreError {
-                print("$ MKFirestoreMock: Finished Permutation for path \(permutation.firestoreReference.rawPath) with error")
+                print("$ MKFirestoreMock: Finished Mutation for path \(mutation.firestoreReference.rawPath) with error")
                 print("$ MKFirestoreMock: \(firestoreError.localizedDescription)")
             } else {
-                print("$ MKFirestoreMock: Successfully finished Permutation for path \(permutation.firestoreReference.rawPath)")
+                print("$ MKFirestoreMock: Successfully finished Mutation for path \(mutation.firestoreReference.rawPath)")
             }
-            pendingPermutation.responseHandler?(firestoreError)
+            pendingMutation.responseHandler?(firestoreError)
         }
     }
     
@@ -187,16 +187,16 @@ public class MKFirestoreMock: MKFirestore {
 
 // MARK: - Helper
 
-class MKPendingPermutation {
+class MKPendingMutation {
     typealias ResponseHander = (MKFirestoreError?)->Void
     
     let path: String
-    let permutation: MKFirestorePermutation
+    let mutation: MKFirestoreMutation
     var responseHandler: ResponseHander?
     
-    init(path: String, permutation: MKFirestorePermutation, responseHandler: ResponseHander? = nil) {
+    init(path: String, mutation: MKFirestoreMutation, responseHandler: ResponseHander? = nil) {
         self.path = path
-        self.permutation = permutation
+        self.mutation = mutation
         self.responseHandler = responseHandler
     }
 }
