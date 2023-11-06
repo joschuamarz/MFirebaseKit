@@ -59,6 +59,6 @@ public protocol MKFirestoreMutation: MKFirestoreOperation {
 }
 
 public struct MKFirestoreMutationResponse {
-    let documentId: String?
-    let error: MKFirestoreError?
+    public let documentId: String?
+    public let error: MKFirestoreError?
 }
