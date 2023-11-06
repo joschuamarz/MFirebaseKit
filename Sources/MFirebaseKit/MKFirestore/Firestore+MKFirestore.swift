@@ -155,14 +155,11 @@ extension Dictionary {
     func toJsonCompatible() -> Dictionary {
         var dict = self
         dict.filter {
-            $0.value is Date || $0.value is Timestamp
+            $0.value is Timestamp
         }.forEach {
-            if $0.value is Date {
-                let date = $0.value as? Date ?? Date()
-                dict[$0.key] = date.timestampString as? Value
-            } else if $0.value is Timestamp {
+            if $0.value is Timestamp {
                 let date = $0.value as? Timestamp ?? Timestamp()
-                dict[$0.key] = date.dateValue().timestampString as? Value
+                dict[$0.key] = date.dateValue() as? Value
             }
         }
         return dict
