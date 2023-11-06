@@ -126,7 +126,7 @@ extension Firestore: MKFirestore {
             let jsonArray: [[String: Any]] = documents.map({ $0.data().toJsonCompatible() })
             print(jsonArray)
             let jsonData = try JSONSerialization.data(withJSONObject: jsonArray, options: .prettyPrinted)
-            let results = try JSONDecoder().decode(T.ResultData.self, from: jsonData)
+            let results = try JSONDecoder.dateSensitiveDecoder().decode(T.ResultData.self, from: jsonData)
             print("$ MKFirestore: Successfully finished document Query for path \(query.firestoreReference.rawPath)")
             print("$ MKFirestore: Fetched \(jsonArray.count) objects")
             return MKFirestoreQueryResponse(error: nil, responseData: results)
@@ -155,11 +155,14 @@ extension Dictionary {
     func toJsonCompatible() -> Dictionary {
         var dict = self
         dict.filter {
-            $0.value is Timestamp
+            $0.value is Date || $0.value is Timestamp
         }.forEach {
-            if $0.value is Timestamp {
+            if $0.value is Date {
+                let date = $0.value as? Date ?? Date()
+                dict[$0.key] = date.timestampString as? Value
+            } else if $0.value is Timestamp {
                 let date = $0.value as? Timestamp ?? Timestamp()
-                dict[$0.key] = date.dateValue() as? Value
+                dict[$0.key] = date.dateValue().timestampString as? Value
             }
         }
         return dict
@@ -174,8 +177,38 @@ extension Date {
     
     static private var timestampFormatter: DateFormatter {
         let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        dateFormatter.dateFormat = "yyyy'-'MM'-'dd'T'HH':'mm':'ss.SSS'Z'"
         dateFormatter.timeZone = TimeZone(identifier: "UTC")
         return dateFormatter
     }
 }
+
+extension JSONDecoder {
+    
+    static func dateSensitiveDecoder() -> JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let dateString = try container.decode(String.self)
+            
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy'-'MM'-'dd'T'HH':'mm':'ss.SSS'Z'"
+            if let date = dateFormatter.date(from: dateString) {
+                return date
+            }
+            
+            dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+            if let date = dateFormatter
+                .date(from: dateString) {
+                return date
+            }
+    
+            throw DecodingError.dataCorruptedError(in: container,
+                                                   debugDescription: "Cannot decode date string \(dateString)")
+        }
+        return decoder
+    }
+    
+}
+
+
