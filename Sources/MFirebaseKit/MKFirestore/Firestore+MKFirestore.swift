@@ -123,7 +123,7 @@ extension Firestore: MKFirestore {
             } else {
                 documents = try await collectionReference.getDocuments().documents
             }
-            let jsonArray: [[String: Any]] = documents.map({ $0.data() })
+            let jsonArray: [[String: Any]] = documents.map({ $0.data().toJsonCompatible() })
             let jsonData = try JSONSerialization.data(withJSONObject: jsonArray, options: .prettyPrinted)
             let results = try JSONDecoder().decode(T.ResultData.self, from: jsonData)
             print("$ MKFirestore: Successfully finished document Query for path \(query.firestoreReference.rawPath)")
@@ -145,5 +145,39 @@ extension Firestore: MKFirestore {
         }
         print("$ MKFirestore: \(specificError.localizedDescription)")
         return specificError
+    }
+}
+
+
+extension Dictionary {
+
+    func toJsonCompatible() -> Dictionary {
+        var dict = self
+        dict.filter {
+            $0.value is Date || $0.value is Timestamp
+        }.forEach {
+            if $0.value is Date {
+                let date = $0.value as? Date ?? Date()
+                dict[$0.key] = date.timestampString as? Value
+            } else if $0.value is Timestamp {
+                let date = $0.value as? Timestamp ?? Timestamp()
+                dict[$0.key] = date.dateValue().timestampString as? Value
+            }
+        }
+        return dict
+    }
+}
+
+extension Date {
+    
+    var timestampString: String {
+        Date.timestampFormatter.string(from: self)
+    }
+    
+    static private var timestampFormatter: DateFormatter {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        dateFormatter.timeZone = TimeZone(identifier: "UTC")
+        return dateFormatter
     }
 }
