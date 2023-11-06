@@ -124,6 +124,7 @@ extension Firestore: MKFirestore {
                 documents = try await collectionReference.getDocuments().documents
             }
             let jsonArray: [[String: Any]] = documents.map({ $0.data().toJsonCompatible() })
+            print(jsonArray)
             let jsonData = try JSONSerialization.data(withJSONObject: jsonArray, options: .prettyPrinted)
             let results = try JSONDecoder().decode(T.ResultData.self, from: jsonData)
             print("$ MKFirestore: Successfully finished document Query for path \(query.firestoreReference.rawPath)")
