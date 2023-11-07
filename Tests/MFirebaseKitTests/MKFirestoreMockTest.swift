@@ -12,8 +12,8 @@ final class MKFirestoreMockTest: XCTestCase {
     func testDocumentQuery() {
         let firestore = MKFirestoreMock()
         let query = TestDocumentQuery()
-        var response: MKFirestoreQueryResponse<TestDocumentQuery>?
-        firestore.executeQuery(query) { data in
+        var response: MKFirestoreDocumentQueryResponse<TestDocumentQuery>?
+        firestore.executeDocumentQuery(query) { data in
             response = data
         }
         firestore.respond(to: query, with: query.mockResultData)
@@ -24,8 +24,8 @@ final class MKFirestoreMockTest: XCTestCase {
     func testUnauthenticatedDocumentQuery() {
         let firestore = MKFirestoreMock()
         let query = TestDocumentQuery()
-        var response: MKFirestoreQueryResponse<TestDocumentQuery>?
-        firestore.executeQuery(query) { data in
+        var response: MKFirestoreDocumentQueryResponse<TestDocumentQuery>?
+        firestore.executeDocumentQuery(query) { data in
             response = data
         }
         firestore.respond(to: query, with: .unauthenticated)
@@ -36,8 +36,8 @@ final class MKFirestoreMockTest: XCTestCase {
     func testCollectionQuery() {
         let firestore = MKFirestoreMock()
         let query = TestCollectionQuery()
-        var response: MKFirestoreQueryResponse<TestCollectionQuery>?
-        firestore.executeQuery(query) { data in
+        var response: MKFirestoreCollectionQueryResponse<TestCollectionQuery>?
+        firestore.executeCollectionQuery(query) { data in
             response = data
         }
         firestore.respond(to: query, with: query.mockResultData)
@@ -48,8 +48,8 @@ final class MKFirestoreMockTest: XCTestCase {
     func testUnauthenticatedCollectionQuery() {
         let firestore = MKFirestoreMock()
         let query = TestCollectionQuery()
-        var response: MKFirestoreQueryResponse<TestCollectionQuery>?
-        firestore.executeQuery(query) { data in
+        var response: MKFirestoreCollectionQueryResponse<TestCollectionQuery>?
+        firestore.executeCollectionQuery(query) { data in
             response = data
         }
         firestore.respond(to: query, with: .unauthenticated)
@@ -72,43 +72,31 @@ final class MKFirestoreMockTest: XCTestCase {
     
     // MARK: - Helper
     
-    struct TestDocumentQuery: MKFirestoreQuery {
-        var firestoreReference: MKFirestoreReference = .collection("Collection1").document("doc")
+    struct TestDocumentQuery: MKFirestoreDocumentQuery {
+        typealias ResultData = TestQueryResultDataType
+        var documentReference: MKFirestoreDocumentReference = .collection("Collection1").document("doc")
         
         var mockResultData: TestQueryResultDataType = .init(name: "Test")
-        
-        typealias ResultData = TestQueryResultDataType
     }
     
-    struct TestCollectionQuery: MKFirestoreQuery {
-        typealias ResultData = [TestQueryResultDataType]
+    struct TestCollectionQuery: MKFirestoreCollectionQuery {
+        var collectionReference: MKFirestoreCollectionReference = .collection("A").document("B").collection("C")
         
-        var firestoreReference: MKFirestoreReference = .collection("A").document("B").collection("C")
+        var orderDescriptor: OrderDescriptor? = nil
+        
+        var limit: Int?
+        
+        
+        var filters: [MKFirestoreQueryFilter] = []
+        
+        typealias ResultData = TestQueryResultDataType
+        
         
         var mockResultData: [TestQueryResultDataType] = [
             .init(name: "A"),
             .init(name: "B"),
             .init(name: "C"),
         ]
-    }
-    
-    struct TestAdvancedQuery: MKFirestoreAdvancedQuery {
-        typealias ResultData = [TestQueryResultDataType]
-        
-        var orderByFieldName: String = "title"
-        
-        var orderDescending: Bool = false
-        
-        var startAfterFieldValue: Any? = nil
-        
-        var limit: Int = 1
-        
-        var filters: [MFirebaseKit.MKFirestoreQueryFilter] = [
-        ]
-        
-        var firestoreReference: MFirebaseKit.MKFirestoreReference
-        
-        var mockResultData: [MKFirestoreMockTest.TestQueryResultDataType] = []
     }
     
     struct TestQueryResultDataType: Codable {
@@ -130,3 +118,5 @@ final class MKFirestoreMockTest: XCTestCase {
         var operation: MFirebaseKit.MKFirestoreMutationOperation = .addDocument([:])
     }
 }
+
+

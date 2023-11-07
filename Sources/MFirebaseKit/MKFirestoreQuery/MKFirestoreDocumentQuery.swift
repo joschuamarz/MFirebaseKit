@@ -12,15 +12,21 @@ public protocol MKFirestoreOperation {
     var firestoreReference: MKFirestoreReference { get }
 }
 
-public protocol MKFirestoreQuery: MKFirestoreOperation {
+public protocol MKFirestoreDocumentQuery: MKFirestoreOperation {
     associatedtype ResultData: Codable
     /// Reference to the Document or Collection
-    var firestoreReference: MKFirestoreReference { get }
+    var documentReference: MKFirestoreDocumentReference { get }
     /// Provide a result that can be used for `FirestoreMock
     var mockResultData: ResultData { get }
 }
 
-public struct MKFirestoreQueryResponse<Query: MKFirestoreQuery> {
+extension MKFirestoreDocumentQuery {
+    public var firestoreReference: MKFirestoreReference {
+        return documentReference
+    }
+}
+
+public struct MKFirestoreDocumentQueryResponse<Query: MKFirestoreDocumentQuery> {
     public let error: MKFirestoreError?
     public let responseData: Query.ResultData?
     

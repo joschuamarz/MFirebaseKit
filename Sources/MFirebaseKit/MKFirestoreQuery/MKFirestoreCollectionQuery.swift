@@ -7,19 +7,48 @@
 
 import FirebaseFirestore
 
-public protocol MKFirestoreAdvancedQuery: MKFirestoreQuery {
+public protocol MKFirestoreCollectionQuery: MKFirestoreOperation {
+    /// Use the base type of the array.
+    /// If your Query should return `[Int]`, you should put `Int` here
+    associatedtype BaseResultData: Codable
+    
+    var collectionReference: MKFirestoreCollectionReference { get }
+    /// Provide a result that can be used for `FirestoreMock
+    var mockResultData: [BaseResultData] { get }
+    /// Describe how to order the query
+    var orderDescriptor: OrderDescriptor? { get }
+    /// Maximum number of results for this query
+    var limit: Int? { get }
+    /// Apply a set of filters to the query. An empty array stand for no filters
+    var filters: [MKFirestoreQueryFilter] { get }
+}
+
+public struct OrderDescriptor {
     /// The name of the field that should be used for ordering the data
-    var orderByFieldName: String { get }
+    var orderByFieldName: String
     /// Boolean value if the data should be ordered descending
-    var orderDescending: Bool { get }
+    var orderDescending: Bool
     /// Define the value after which the query should start
     /// *! IMPORTANT !*
     /// The value must be for the same field as the sorting (`oderByFieldName`)
-    var startAfterFieldValue: Any? { get }
-    /// Maximum number of results for this query
-    var limit: Int { get }
-    /// Apply a set of filters to the query. An empty array stand for no filters
-    var filters: [MKFirestoreQueryFilter] { get }
+    /// e.g. Sort by `count` - start after `20`
+    var startAfterFieldValue: Any?
+}
+
+extension MKFirestoreCollectionQuery {
+    public var firestoreReference: MKFirestoreReference {
+        return collectionReference
+    }
+}
+
+public struct MKFirestoreCollectionQueryResponse<Query: MKFirestoreCollectionQuery> {
+    public let error: MKFirestoreError?
+    public let responseData: [Query.BaseResultData]?
+    
+    init(error: MKFirestoreError?, responseData: [Query.BaseResultData]?) {
+        self.responseData = responseData
+        self.error = error
+    }
 }
 
 public enum MKFirestoreQueryFilter {

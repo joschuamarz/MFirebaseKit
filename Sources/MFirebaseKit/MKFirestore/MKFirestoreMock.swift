@@ -100,9 +100,10 @@ public class MKFirestoreMock: MKFirestore {
         pendingMutations.append(pendingMutation)
     }
     
-    public func executeQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
+    // MARK: -  Document Query
+    public func executeDocumentQuery<T: MKFirestoreDocumentQuery>(_ query: T) async -> MKFirestoreDocumentQueryResponse<T> {
         print("$ MKFirestoreMock: Executing Query with path \(query.firestoreReference.rawPath)")
-        let pendingQuery = MKPendingQuery(path: query.firestoreReference.rawPath, query: query)
+        let pendingQuery = MKPendingDocumentQuery(path: query.firestoreReference.rawPath, query: query)
         if let response = makeAutoResponseIfNeeded(to: query, autoResponse: autoResponse) {
             return response
         }
@@ -114,17 +115,47 @@ public class MKFirestoreMock: MKFirestore {
                 }
             }
         } catch {
-            return MKFirestoreQueryResponse(error: .firestoreError(.init(FirestoreErrorCode.unknown)), responseData: nil)
+            return MKFirestoreDocumentQueryResponse(error: .firestoreError(.init(FirestoreErrorCode.unknown)), responseData: nil)
         }
     }
     
-    public func executeQuery<T: MKFirestoreQuery>(_ query: T, completion: @escaping (MKFirestoreQueryResponse<T>) -> Void) {
+    public func executeDocumentQuery<T: MKFirestoreDocumentQuery>(_ query: T, completion: @escaping (MKFirestoreDocumentQueryResponse<T>) -> Void) {
         let path = query.firestoreReference.rawPath
         print("$ MKFirestoreMock: Executing Query with path \(path)")
         if let response = makeAutoResponseIfNeeded(to: query, autoResponse: autoResponse) {
             completion(response)
         }
-        let pendingQuery = MKPendingQuery<T>(path: path, query: query, responseHandler: completion)
+        let pendingQuery = MKPendingDocumentQuery<T>(path: path, query: query, responseHandler: completion)
+        pendingDocumentQueries.append(pendingQuery as Any)
+    }
+    
+    // MARK: -  Collection Query
+    
+    public func executeCollectionQuery<T: MKFirestoreCollectionQuery>(_ query: T) async -> MKFirestoreCollectionQueryResponse<T> {
+        print("$ MKFirestoreMock: Executing Query with path \(query.firestoreReference.rawPath)")
+        let pendingQuery = MKPendingCollectionQuery(path: query.firestoreReference.rawPath, query: query)
+        if let response = makeAutoResponseIfNeeded(to: query, autoResponse: autoResponse) {
+            return response
+        }
+        pendingDocumentQueries.append(pendingQuery as Any)
+        do {
+            return try await withCheckedThrowingContinuation { continuation in
+                pendingQuery.responseHandler = { response in
+                    continuation.resume(returning: response)
+                }
+            }
+        } catch {
+            return MKFirestoreCollectionQueryResponse(error: .firestoreError(.init(FirestoreErrorCode.unknown)), responseData: nil)
+        }
+    }
+    
+    public func executeCollectionQuery<T: MKFirestoreCollectionQuery>(_ query: T, completion: @escaping (MKFirestoreCollectionQueryResponse<T>) -> Void) {
+        let path = query.firestoreReference.rawPath
+        print("$ MKFirestoreMock: Executing Query with path \(path)")
+        if let response = makeAutoResponseIfNeeded(to: query, autoResponse: autoResponse) {
+            completion(response)
+        }
+        let pendingQuery = MKPendingCollectionQuery<T>(path: path, query: query, responseHandler: completion)
         pendingDocumentQueries.append(pendingQuery as Any)
     }
     
@@ -146,18 +177,18 @@ public class MKFirestoreMock: MKFirestore {
         }
     }
     
-    public func respond<T: MKFirestoreQuery>(to query: T, with error: FirestoreErrorCode.Code) {
-        let response = MKFirestoreQueryResponse<T>(error: .firestoreError(FirestoreErrorCode(error)), responseData: nil)
+    public func respond<T: MKFirestoreDocumentQuery>(to query: T, with error: FirestoreErrorCode.Code) {
+        let response = MKFirestoreDocumentQueryResponse<T>(error: .firestoreError(FirestoreErrorCode(error)), responseData: nil)
         respond(to: query, with: response)
     }
     
-    public func respond<T: MKFirestoreQuery>(to query: T, with data: T.ResultData) {
-        let response = MKFirestoreQueryResponse<T>(error: nil, responseData: data)
+    public func respond<T: MKFirestoreDocumentQuery>(to query: T, with data: T.ResultData) {
+        let response = MKFirestoreDocumentQueryResponse<T>(error: nil, responseData: data)
         respond(to: query, with: response)
     }
     
-    private func respond<T: MKFirestoreQuery>(to query: T, with response: MKFirestoreQueryResponse<T>) {
-        let pendingQueries = pendingDocumentQueries.compactMap({ $0 as? MKPendingQuery<T> })
+    private func respond<T: MKFirestoreDocumentQuery>(to query: T, with response: MKFirestoreDocumentQueryResponse<T>) {
+        let pendingQueries = pendingDocumentQueries.compactMap({ $0 as? MKPendingDocumentQuery<T> })
         if let pendingQuery = pendingQueries.first(where: { $0.path == query.firestoreReference.rawPath }) {
             if let error = response.error {
                 print("$ MKFirestoreMock: Finished Query for path \(query.firestoreReference.rawPath) with error")
@@ -169,16 +200,54 @@ public class MKFirestoreMock: MKFirestore {
         }
     }
     
-    private func makeAutoResponseIfNeeded<T: MKFirestoreQuery>(to query: T, autoResponse: AutoResponse?) -> MKFirestoreQueryResponse<T>? {
+    public func respond<T: MKFirestoreCollectionQuery>(to query: T, with error: FirestoreErrorCode.Code) {
+        let response = MKFirestoreCollectionQueryResponse<T>(error: .firestoreError(FirestoreErrorCode(error)), responseData: nil)
+        respond(to: query, with: response)
+    }
+    
+    public func respond<T: MKFirestoreCollectionQuery>(to query: T, with data: [T.BaseResultData]) {
+        let response = MKFirestoreCollectionQueryResponse<T>(error: nil, responseData: data)
+        respond(to: query, with: response)
+    }
+    
+    private func respond<T: MKFirestoreCollectionQuery>(to query: T, with response: MKFirestoreCollectionQueryResponse<T>) {
+        let pendingQueries = pendingDocumentQueries.compactMap({ $0 as? MKPendingCollectionQuery<T> })
+        if let pendingQuery = pendingQueries.first(where: { $0.path == query.firestoreReference.rawPath }) {
+            if let error = response.error {
+                print("$ MKFirestoreMock: Finished Query for path \(query.firestoreReference.rawPath) with error")
+                print("$ MKFirestoreMock: \(error.localizedDescription)")
+            } else {
+                print("$ MKFirestoreMock: Successfully finished Query for path \(query.firestoreReference.rawPath)")
+            }
+            pendingQuery.responseHandler?(response)
+        }
+    }
+    
+    private func makeAutoResponseIfNeeded<T: MKFirestoreDocumentQuery>(to query: T, autoResponse: AutoResponse?) -> MKFirestoreDocumentQueryResponse<T>? {
         if let autoResponse {
             switch autoResponse {
             case .success:
                 print("$ MKFirestoreMock: Successfully finished Query for path \(query.firestoreReference.rawPath)")
-                return MKFirestoreQueryResponse(error: nil, responseData: query.mockResultData)
+                return MKFirestoreDocumentQueryResponse(error: nil, responseData: query.mockResultData)
             case .error(let error):
                 print("$ MKFirestoreMock: Finished Query for path \(query.firestoreReference.rawPath) with error")
                 print("$ MKFirestoreMock: \(error.localizedDescription)")
-                return MKFirestoreQueryResponse(error: error, responseData: nil)
+                return MKFirestoreDocumentQueryResponse(error: error, responseData: nil)
+            }
+        }
+        return nil
+    }
+    
+    private func makeAutoResponseIfNeeded<T: MKFirestoreCollectionQuery>(to query: T, autoResponse: AutoResponse?) -> MKFirestoreCollectionQueryResponse<T>? {
+        if let autoResponse {
+            switch autoResponse {
+            case .success:
+                print("$ MKFirestoreMock: Successfully finished Query for path \(query.firestoreReference.rawPath)")
+                return MKFirestoreCollectionQueryResponse(error: nil, responseData: query.mockResultData)
+            case .error(let error):
+                print("$ MKFirestoreMock: Finished Query for path \(query.firestoreReference.rawPath) with error")
+                print("$ MKFirestoreMock: \(error.localizedDescription)")
+                return MKFirestoreCollectionQueryResponse(error: error, responseData: nil)
             }
         }
         return nil
@@ -201,8 +270,22 @@ class MKPendingMutation {
     }
 }
 
-class MKPendingQuery<T: MKFirestoreQuery> {
-    typealias ResponseHander = (MKFirestoreQueryResponse<T>)->Void
+class MKPendingDocumentQuery<T: MKFirestoreDocumentQuery> {
+    typealias ResponseHander = (MKFirestoreDocumentQueryResponse<T>)->Void
+    
+    let path: String
+    let query: T
+    var responseHandler: ResponseHander?
+    
+    init(path: String, query: T, responseHandler: ResponseHander? = nil) {
+        self.path = path
+        self.query = query
+        self.responseHandler = responseHandler
+    }
+}
+
+class MKPendingCollectionQuery<T: MKFirestoreCollectionQuery> {
+    typealias ResponseHander = (MKFirestoreCollectionQueryResponse<T>)->Void
     
     let path: String
     let query: T

@@ -64,81 +64,65 @@ extension Firestore: MKFirestore {
         }
     }
     
-    // MARK: - Queries
-    public func executeQuery<T>(_ query: T) async -> MKFirestoreQueryResponse<T> where T : MKFirestoreQuery {
-        if query.firestoreReference is MKFirestoreCollectionReference {
-            return await executeCollectionQuery(query)
-        } else {
-            return await executeDocumentQuery(query)
-        }
-    }
+    // MARK: - Document Query
     
-    public func executeQuery<T>(_ query: T, completion: @escaping (MKFirestoreQueryResponse<T>) -> Void) where T : MKFirestoreQuery {
+    public func executeDocumentQuery<T>(_ query: T, completion: @escaping (MKFirestoreDocumentQueryResponse<T>) -> Void) where T : MKFirestoreDocumentQuery {
         Task {
-            if query.firestoreReference is MKFirestoreCollectionReference {
-                let response = await executeCollectionQuery(query)
-                completion(response)
-            } else {
-                let response = await executeDocumentQuery(query)
-                completion(response)
-            }
+            let response = await executeDocumentQuery(query)
+            completion(response)
         }
     }
     
-    private func executeDocumentQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
+    public func executeDocumentQuery<T: MKFirestoreDocumentQuery>(_ query: T) async -> MKFirestoreDocumentQueryResponse<T> {
         let documentReference = self.document(query.firestoreReference.rawPath)
         print("$ MKFirestore: Executing document Query with path \(query.firestoreReference.rawPath)")
         do {
             let document = try await documentReference.getDocument()
             let result = try document.data(as: T.ResultData.self)
             print("$ MKFirestore: Successfully finished document Query for path \(query.firestoreReference.rawPath)")
-            return MKFirestoreQueryResponse(error: nil, responseData: result)
+            return MKFirestoreDocumentQueryResponse(error: nil, responseData: result)
         } catch (let error) {
-            return MKFirestoreQueryResponse<T>(error: handleError(error, for: query), responseData: nil)
+            return MKFirestoreDocumentQueryResponse<T>(error: handleError(error, for: query), responseData: nil)
         }
     }
     
-    private func executeCollectionQuery<T: MKFirestoreQuery>(_ query: T) async -> MKFirestoreQueryResponse<T> {
+    // MARK: - Collection Query
+    public func executeCollectionQuery<T>(_ query: T, completion: @escaping (MKFirestoreCollectionQueryResponse<T>) -> Void) where T : MKFirestoreCollectionQuery {
+        Task {
+            let response = await executeCollectionQuery(query)
+            completion(response)
+        }
+    }
+    
+    public func executeCollectionQuery<T: MKFirestoreCollectionQuery>(_ query: T) async -> MKFirestoreCollectionQueryResponse<T> {
         let collectionReference = self.collection(query.firestoreReference.rawPath)
-        var firestoreQuery: Query?
-        if let query = query as? (any MKFirestoreAdvancedQuery) {
+        var firestoreQuery: Query = collectionReference
+        if let orderDescriptor = query.orderDescriptor {
             // Order
-            firestoreQuery = collectionReference.order(by: query.orderByFieldName, descending: query.orderDescending)
-            // Filter
-            for filter in query.filters {
-                firestoreQuery = firestoreQuery?.applyFilter(filter)
-            }
+            firestoreQuery = collectionReference.order(by: orderDescriptor.orderByFieldName, descending: orderDescriptor.orderDescending)
             // Start After
-            if let startAfterFieldName = query.startAfterFieldValue {
-                firestoreQuery = firestoreQuery?.start(after: [startAfterFieldName])
+            if let startAfterFieldValue = orderDescriptor.startAfterFieldValue {
+                firestoreQuery = firestoreQuery.start(after: [startAfterFieldValue])
             }
-            // Limit
-            firestoreQuery = firestoreQuery?.limit(to: query.limit)
+        }
+        // Filter
+        for filter in query.filters {
+            firestoreQuery = firestoreQuery.applyFilter(filter)
+        }
+        // Limit
+        if let limit = query.limit {
+            firestoreQuery = firestoreQuery.limit(to: limit)
         }
         print("$ MKFirestore: Executing collection Query with path \(query.firestoreReference.rawPath)")
         do {
-            let documents: [QueryDocumentSnapshot]
-            if let firestoreQuery {
-                documents = try await firestoreQuery.getDocuments().documents
-            } else {
-                documents = try await collectionReference.getDocuments().documents
-            }
-            if let baseType = getBaseType(of: T.ResultData.self) as? Codable.Type {
-                let parsedDocuments = try documents.map({ try $0.data(as: baseType.self) })
-                if let results = parsedDocuments as? T.ResultData {
-                    print("$ MKFirestore: Successfully finished document Query for path \(query.firestoreReference.rawPath)")
-                    print("$ MKFirestore: Fetched \(parsedDocuments.count) objects in the new way")
-                    return MKFirestoreQueryResponse(error: nil, responseData: results)
-                }
-            }
-            let jsonArray: [[String: Any]] = documents.map({ $0.data().toJsonCompatible() })
-            let jsonData = try JSONSerialization.data(withJSONObject: jsonArray, options: .prettyPrinted)
-            let results = try JSONDecoder.dateSensitiveDecoder().decode(T.ResultData.self, from: jsonData)
+            let documents: [QueryDocumentSnapshot] = try await firestoreQuery.getDocuments().documents
+            
+            let results = try documents.map({ try $0.data(as: T.BaseResultData.self) })
             print("$ MKFirestore: Successfully finished document Query for path \(query.firestoreReference.rawPath)")
-            print("$ MKFirestore: Fetched \(jsonArray.count) objects")
-            return MKFirestoreQueryResponse(error: nil, responseData: results)
+            print("$ MKFirestore: Fetched \(documents.count) objects in the new way")
+            return MKFirestoreCollectionQueryResponse(error: nil, responseData: results)
         } catch (let error) {
-            return MKFirestoreQueryResponse<T>(error: handleError(error, for: query), responseData: nil)
+            return MKFirestoreCollectionQueryResponse<T>(error: handleError(error, for: query), responseData: nil)
         }
     }
     
@@ -155,8 +139,8 @@ extension Firestore: MKFirestore {
         return specificError
     }
     
-    private func getBaseType<T>(of collection: T.Type) -> Any.Type? {
-        if let arrayType = T.self as? Array<Any>.Type {
+    public func getBaseType<T>(of collection: T.Type) -> Any.Type? {
+        if let arrayType = T.self as? [Any].Type {
             return arrayType.Element.self
         }
         return nil
