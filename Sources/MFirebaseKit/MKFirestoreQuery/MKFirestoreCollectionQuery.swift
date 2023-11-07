@@ -33,6 +33,12 @@ public struct OrderDescriptor {
     /// The value must be for the same field as the sorting (`oderByFieldName`)
     /// e.g. Sort by `count` - start after `20`
     var startAfterFieldValue: Any?
+    
+    public init(orderByFieldName: String, orderDescending: Bool, startAfterFieldValue: Any? = nil) {
+        self.orderByFieldName = orderByFieldName
+        self.orderDescending = orderDescending
+        self.startAfterFieldValue = startAfterFieldValue
+    }
 }
 
 extension MKFirestoreCollectionQuery {
