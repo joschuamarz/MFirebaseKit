@@ -123,6 +123,14 @@ extension Firestore: MKFirestore {
             } else {
                 documents = try await collectionReference.getDocuments().documents
             }
+            if let baseType = getBaseType(of: T.ResultData.self) as? Codable.Type {
+                let parsedDocuments = try documents.map({ try $0.data(as: baseType.self) })
+                if let results = parsedDocuments as? T.ResultData {
+                    print("$ MKFirestore: Successfully finished document Query for path \(query.firestoreReference.rawPath)")
+                    print("$ MKFirestore: Fetched \(parsedDocuments.count) objects in the new way")
+                    return MKFirestoreQueryResponse(error: nil, responseData: results)
+                }
+            }
             let jsonArray: [[String: Any]] = documents.map({ $0.data().toJsonCompatible() })
             let jsonData = try JSONSerialization.data(withJSONObject: jsonArray, options: .prettyPrinted)
             let results = try JSONDecoder.dateSensitiveDecoder().decode(T.ResultData.self, from: jsonData)
@@ -145,5 +153,12 @@ extension Firestore: MKFirestore {
         }
         print("$ MKFirestore: \(specificError.localizedDescription)")
         return specificError
+    }
+    
+    private func getBaseType<T>(of collection: T.Type) -> Any.Type? {
+        if let arrayType = T.self as? Array<Any>.Type {
+            return arrayType.Element.self
+        }
+        return nil
     }
 }
