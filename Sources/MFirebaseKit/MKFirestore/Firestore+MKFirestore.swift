@@ -13,8 +13,13 @@ extension Firestore: MKFirestore {
     
     // MARK: - Mutations
     
-    
-    public func executeMutation(_ mutation: MKFirestoreMutation) async -> MKFirestoreMutationResponse {
+    /// Asynchonously executes a Mutation and returns the corresponding `MKFirestoreMutationResponse`.
+    ///
+    /// This method can execute a mutation both on a `Collection` and `Document`.
+    /// - Parameter mutation: The mutation that should be executed.
+    /// - Returns: A `MKFirestoreMutationResponse` containing the affected `documentId` on success
+    /// and an `MKFirestoreError` on failure.
+    public func executeMutation(_ mutation: MKFirestoreDocumentMutation) async -> MKFirestoreMutationResponse {
         if mutation.firestoreReference is MKFirestoreCollectionReference {
             return await executeCollectionMutation(mutation)
         } else {
@@ -22,7 +27,15 @@ extension Firestore: MKFirestore {
         }
     }
     
-    public func executeMutation(_ mutation: MKFirestoreMutation, completion: @escaping (MKFirestoreMutationResponse) -> Void) {
+    /// Asynchonously executes a Mutation and calls the completion handler with corresponding `MKFirestoreMutationResponse`.
+    ///
+    /// This method can execute a mutation both on a `Collection` and `Document`.
+    /// - Parameter mutation: The mutation that should be executed.
+    /// - Parameter completion: Completion handler that gets called when the execution ended.
+    /// - Returns: A `MKFirestoreMutationResponse` containing the affected `documentId` on success
+    /// and an `MKFirestoreError` on failure.
+    public func executeMutation(_ mutation: MKFirestoreDocumentMutation, completion: @escaping (MKFirestoreMutationResponse) -> Void) {
+        // Use async implementation for simplicity
         Task {
             if mutation.firestoreReference is MKFirestoreCollectionReference {
                 let response = await executeCollectionMutation(mutation)
@@ -34,7 +47,9 @@ extension Firestore: MKFirestore {
         }
     }
     
-    private func executeCollectionMutation(_ mutation: MKFirestoreMutation) async -> MKFirestoreMutationResponse {
+    /// Executes the given mutation on a collection
+    /// 
+    private func executeCollectionMutation(_ mutation: MKFirestoreDocumentMutation) async -> MKFirestoreMutationResponse {
         do {
             if let data = mutation.operation.data {
                 let documentId = try await self.collection(mutation.firestoreReference.rawPath).addDocument(data: data).documentID
@@ -49,7 +64,7 @@ extension Firestore: MKFirestore {
         }
     }
     
-    private func executeDocumentMutation(_ mutation: MKFirestoreMutation) async -> MKFirestoreMutationResponse {
+    private func executeDocumentMutation(_ mutation: MKFirestoreDocumentMutation) async -> MKFirestoreMutationResponse {
         do {
             if let data = mutation.operation.data {
                 try await self.document(mutation.firestoreReference.rawPath).setData(data, merge: mutation.operation.merge)
@@ -127,7 +142,7 @@ extension Firestore: MKFirestore {
     }
     
     // MARK: - Handle Error
-    private func handleError<T: MKFirestoreOperation>(_ error: Error, for query: T) -> MKFirestoreError {
+    private func handleError<T: MKFirestoreQuery>(_ error: Error, for query: T) -> MKFirestoreError {
         print("$ MKFirestore: Finished collection Query for path \(query.firestoreReference.rawPath) with Error")
         var specificError: MKFirestoreError
         if let firestoreError = error as? FirebaseFirestore.FirestoreErrorCode {

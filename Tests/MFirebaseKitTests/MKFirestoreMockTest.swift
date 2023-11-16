@@ -103,7 +103,7 @@ final class MKFirestoreMockTest: XCTestCase {
         let name: String
     }
     
-    struct TestDocumentPermutation: MKFirestoreMutation {
+    struct TestDocumentPermutation: MKFirestoreDocumentMutation {
         var firestoreReference: MFirebaseKit.MKFirestoreReference = .collection("Collection").document("Document")
         
         var operation: MFirebaseKit.MKFirestoreMutationOperation = .updateFields([
@@ -112,7 +112,7 @@ final class MKFirestoreMockTest: XCTestCase {
         ], merge: true)
     }
     
-    struct TestCollectionPermutation: MKFirestoreMutation {
+    struct TestCollectionPermutation: MKFirestoreDocumentMutation {
         var firestoreReference: MFirebaseKit.MKFirestoreReference = .collection("Collection")
         
         var operation: MFirebaseKit.MKFirestoreMutationOperation = .addDocument([:])

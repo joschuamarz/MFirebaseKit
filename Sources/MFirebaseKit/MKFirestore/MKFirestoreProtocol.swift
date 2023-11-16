@@ -9,8 +9,8 @@ import Foundation
 import FirebaseFirestore
 
 public protocol MKFirestore {
-    func executeMutation(_ mutation: MKFirestoreMutation) async -> MKFirestoreMutationResponse
-    func executeMutation(_ mutation: MKFirestoreMutation, completion: @escaping (MKFirestoreMutationResponse)->Void)
+    func executeMutation(_ mutation: MKFirestoreDocumentMutation) async -> MKFirestoreMutationResponse
+    func executeMutation(_ mutation: MKFirestoreDocumentMutation, completion: @escaping (MKFirestoreMutationResponse)->Void)
     func executeDocumentQuery<T: MKFirestoreDocumentQuery>(_ query: T) async -> MKFirestoreDocumentQueryResponse<T>
     func executeDocumentQuery<T: MKFirestoreDocumentQuery>(_ query: T, completion: @escaping (MKFirestoreDocumentQueryResponse<T>)->Void)
     func executeCollectionQuery<T: MKFirestoreCollectionQuery>(_ query: T) async -> MKFirestoreCollectionQueryResponse<T>

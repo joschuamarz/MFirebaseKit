@@ -7,7 +7,7 @@
 
 import FirebaseFirestore
 
-public protocol MKFirestoreCollectionQuery: MKFirestoreOperation {
+public protocol MKFirestoreCollectionQuery: MKFirestoreQuery {
     /// Use the base type of the array.
     /// If your Query should return `[Int]`, you should put `Int` here
     associatedtype BaseResultData: Codable

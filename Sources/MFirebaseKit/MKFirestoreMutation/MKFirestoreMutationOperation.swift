@@ -89,6 +89,7 @@ public struct MKFirestoreMutationOperation {
     ///
     /// > Warning: With `merge = false`, this will override all other fields of the document!
     public static func updateFields(_ fieldMutations: [MKFirestoreFieldUpdate], merge: Bool) -> MKFirestoreMutationOperation {
+        // Map fieldNames and their updated values to a dictionary
         let data: [String: Any] = Dictionary(uniqueKeysWithValues: fieldMutations.map { ($0.fieldName, $0.newValue) })
         return MKFirestoreMutationOperation(data: data, merge: merge)
     }

@@ -25,7 +25,7 @@ public class MKFirestoreMock: MKFirestore {
     
     // MARK: - Document Query
     
-    public func executeMutation(_ mutation: MKFirestoreMutation) async -> MKFirestoreMutationResponse {
+    public func executeMutation(_ mutation: MKFirestoreDocumentMutation) async -> MKFirestoreMutationResponse {
         print("$ MKFirestoreMock: Executing Mutation with path \(mutation.firestoreReference.rawPath)")
         
         if let autoResponse {
@@ -65,7 +65,7 @@ public class MKFirestoreMock: MKFirestore {
         }
     }
     
-    public func executeMutation(_ mutation: MKFirestoreMutation, completion: @escaping (MKFirestoreMutationResponse) -> Void) {
+    public func executeMutation(_ mutation: MKFirestoreDocumentMutation, completion: @escaping (MKFirestoreMutationResponse) -> Void) {
         let path = mutation.firestoreReference.rawPath
         print("$ MKFirestoreMock: Executing Mutation with path \(path)")
         if let autoResponse {
@@ -161,7 +161,7 @@ public class MKFirestoreMock: MKFirestore {
     
     
     // MARK: - Respond Document
-    public func respond(to mutation: MKFirestoreMutation, with error: FirestoreErrorCode.Code?) {
+    public func respond(to mutation: MKFirestoreDocumentMutation, with error: FirestoreErrorCode.Code?) {
         if let pendingMutation = pendingMutations.first(where: { $0.path == mutation.firestoreReference.rawPath }) {
             var firestoreError: MKFirestoreError? = nil
             if let error {
@@ -260,10 +260,10 @@ class MKPendingMutation {
     typealias ResponseHander = (MKFirestoreError?)->Void
     
     let path: String
-    let mutation: MKFirestoreMutation
+    let mutation: MKFirestoreDocumentMutation
     var responseHandler: ResponseHander?
     
-    init(path: String, mutation: MKFirestoreMutation, responseHandler: ResponseHander? = nil) {
+    init(path: String, mutation: MKFirestoreDocumentMutation, responseHandler: ResponseHander? = nil) {
         self.path = path
         self.mutation = mutation
         self.responseHandler = responseHandler
