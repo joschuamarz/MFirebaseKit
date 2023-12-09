@@ -80,6 +80,8 @@ final class MKFirestoreMockTest: XCTestCase {
     }
     
     struct TestCollectionQuery: MKFirestoreCollectionQuery {
+        typealias BaseResultData = TestQueryResultDataType
+        
         var collectionReference: MKFirestoreCollectionReference = .collection("A").document("B").collection("C")
         
         var orderDescriptor: OrderDescriptor? = nil
@@ -89,7 +91,6 @@ final class MKFirestoreMockTest: XCTestCase {
         
         var filters: [MKFirestoreQueryFilter] = []
         
-        typealias ResultData = TestQueryResultDataType
         
         
         var mockResultData: [TestQueryResultDataType] = [
@@ -99,8 +100,9 @@ final class MKFirestoreMockTest: XCTestCase {
         ]
     }
     
-    struct TestQueryResultDataType: Codable {
+    struct TestQueryResultDataType: Codable, Identifiable {
         let name: String
+        var id: String = UUID.init().uuidString
     }
     
     struct TestDocumentPermutation: MKFirestoreDocumentMutation {

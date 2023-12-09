@@ -10,7 +10,7 @@ import FirebaseFirestoreSwift
 
 @available(macOS 10.15, *)
 extension Firestore: MKFirestore {
-    
+        
     // MARK: - Mutations
     
     /// Asynchonously executes a Mutation and returns the corresponding `MKFirestoreMutationResponse`.
@@ -26,24 +26,15 @@ extension Firestore: MKFirestore {
             return await executeDocumentMutation(mutation)
         }
     }
+        
+    // MARK: - Deletions
     
-    /// Asynchonously executes a Mutation and calls the completion handler with corresponding `MKFirestoreMutationResponse`.
-    ///
-    /// This method can execute a mutation both on a `Collection` and `Document`.
-    /// - Parameter mutation: The mutation that should be executed.
-    /// - Parameter completion: Completion handler that gets called when the execution ended.
-    /// - Returns: A `MKFirestoreMutationResponse` containing the affected `documentId` on success
-    /// and an `MKFirestoreError` on failure.
-    public func executeMutation(_ mutation: MKFirestoreDocumentMutation, completion: @escaping (MKFirestoreMutationResponse) -> Void) {
-        // Use async implementation for simplicity
-        Task {
-            if mutation.firestoreReference is MKFirestoreCollectionReference {
-                let response = await executeCollectionMutation(mutation)
-                completion(response)
-            } else {
-                let response = await executeDocumentMutation(mutation)
-                completion(response)
-            }
+    public func executeDeletion(_ deletion: MKFirestoreDocumentDeletion) async -> MKFirestoreError? {
+        do {
+            try await self.document(deletion.documentReference.rawPath).delete()
+            return nil
+        } catch {
+            return MKFirestoreError.parsingError(error)
         }
     }
     
@@ -81,13 +72,6 @@ extension Firestore: MKFirestore {
     
     // MARK: - Document Query
     
-    public func executeDocumentQuery<T>(_ query: T, completion: @escaping (MKFirestoreDocumentQueryResponse<T>) -> Void) where T : MKFirestoreDocumentQuery {
-        Task {
-            let response = await executeDocumentQuery(query)
-            completion(response)
-        }
-    }
-    
     public func executeDocumentQuery<T: MKFirestoreDocumentQuery>(_ query: T) async -> MKFirestoreDocumentQueryResponse<T> {
         let documentReference = self.document(query.firestoreReference.rawPath)
         print("$ MKFirestore: Executing document Query with path \(query.firestoreReference.rawPath)")
@@ -102,12 +86,6 @@ extension Firestore: MKFirestore {
     }
     
     // MARK: - Collection Query
-    public func executeCollectionQuery<T>(_ query: T, completion: @escaping (MKFirestoreCollectionQueryResponse<T>) -> Void) where T : MKFirestoreCollectionQuery {
-        Task {
-            let response = await executeCollectionQuery(query)
-            completion(response)
-        }
-    }
     
     public func executeCollectionQuery<T: MKFirestoreCollectionQuery>(_ query: T) async -> MKFirestoreCollectionQueryResponse<T> {
         let collectionReference = self.collection(query.firestoreReference.rawPath)
@@ -138,6 +116,42 @@ extension Firestore: MKFirestore {
             return MKFirestoreCollectionQueryResponse(error: nil, responseData: results)
         } catch (let error) {
             return MKFirestoreCollectionQueryResponse<T>(error: handleError(error, for: query), responseData: nil)
+        }
+    }
+    
+    public func addCollectionListener<T: MKFirestoreCollectionQuery>(_ listener: MKFirestoreCollectionListener<T>) -> ListenerRegistration {
+        let query = listener.query
+        let collectionReference = self.collection(query.firestoreReference.rawPath)
+        var firestoreQuery: Query = collectionReference
+        if let orderDescriptor = query.orderDescriptor {
+            // Order
+            firestoreQuery = collectionReference.order(by: orderDescriptor.orderByFieldName, descending: orderDescriptor.orderDescending)
+            // Start After
+            if let startAfterFieldValue = orderDescriptor.startAfterFieldValue {
+                firestoreQuery = firestoreQuery.start(after: [startAfterFieldValue])
+            }
+        }
+        // Filter
+        for filter in query.filters {
+            firestoreQuery = firestoreQuery.applyFilter(filter)
+        }
+        
+        // Limit
+        if let limit = query.limit {
+            firestoreQuery = firestoreQuery.limit(to: limit)
+        }
+        
+        return firestoreQuery.addSnapshotListener { snapshot, error in
+            listener.handle(snapshot?.documentChanges, error: error)
+        }
+    }
+    
+    public func addCollectionListener<T: MKFirestoreListener>(_ listener: T) {
+        if let query = listener.query as? any MKFirestoreCollectionQuery {
+            let collectionReference = self.collection(query.firestoreReference.rawPath)
+            let newL = collectionReference.addSnapshotListener { snapshot, error in
+                listener.handle(snapshot?.documentChanges, error: error)
+            }
         }
     }
     

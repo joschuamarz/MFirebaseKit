@@ -10,17 +10,74 @@ import FirebaseFirestoreSwift
 
 
 public class MKFirestoreMock: MKFirestore {
+    
+    private var activeListeners: [String] = []
+    
+    private func mockChanges<T: MKFirestoreCollectionQuery>(for listener: MKFirestoreCollectionListener<T>, with id: String) {
+        guard listener.query.mockResultData.count > 0 else { return }
+    
+        Task {
+            try? await Task.sleep(nanoseconds: 1000000000)
+            
+            for mock in listener.query.mockResultData {
+                listener.onAdded(mock)
+            }
+            
+            guard listenerMockMode == .auto else { return }
+            
+            while activeListeners.contains(id) {
+                var mocks = listener.query.mockResultData
+                let last = mocks.removeLast()
+                // remove
+                try? await Task.sleep(nanoseconds: 1000000000)
+                listener.onRemoved(last)
+                
+                try? await Task.sleep(nanoseconds: 1000000000)
+                let secondLast = mocks.removeLast()
+                listener.onRemoved(secondLast)
+                
+                try? await Task.sleep(nanoseconds: 1000000000)
+                listener.onAdded(secondLast)
+                
+                try? await Task.sleep(nanoseconds: 1000000000)
+                listener.onAdded(last)
+            }
+        }
+        
+    }
+    
+    public func addCollectionListener<T: MKFirestoreCollectionQuery>(_ listener: MKFirestoreCollectionListener<T>) -> ListenerRegistration {
+        let listenerId: String = UUID().uuidString
+        activeListeners.append(listenerId)
+        if listenerMockMode != .none {
+            mockChanges(for: listener, with: listenerId)
+        }
+        return MockListenerRegistration { [weak self] in
+            self?.activeListeners.removeAll(where: { $0 == listenerId })
+        }
+    }
+    
+    public func executeDeletion(_ deletion: MKFirestoreDocumentDeletion) async -> MKFirestoreError? {
+        return nil
+    }
+    
     public enum AutoResponse {
         case success
         case error(MKFirestoreError)
+    }
+    
+    public enum ListenerMockMode {
+        case none, initial, auto
     }
     var pendingMutations: [MKPendingMutation] = []
     var pendingDocumentQueries: [Any] = []
     var pendingCollectionQueries: [Any] = []
     var autoResponse: AutoResponse?
+    var listenerMockMode: ListenerMockMode
     
-    public init(autoResponse: AutoResponse? = nil) {
+    public init(autoResponse: AutoResponse? = nil, listenerMockMode: ListenerMockMode = .none) {
         self.autoResponse = autoResponse
+        self.listenerMockMode = listenerMockMode
     }
     
     // MARK: - Document Query
