@@ -65,7 +65,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
     }
     
     // MARK: - Init
-    init(query: Query,
+    public init(query: Query,
          firestore: MKFirestore,
          onAddedAdditionalHandler: AdditionalChangeHandler? = nil,
          onModifiedAdditionalHandler: AdditionalChangeHandler? = nil,
