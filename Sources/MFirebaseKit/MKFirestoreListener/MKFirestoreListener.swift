@@ -41,8 +41,8 @@ extension MKFirestoreListener {
 }
 
 public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: ObservableObject {
-    typealias AdditionalChangeHandler = (Query.BaseResultData)->Query.BaseResultData?
-    typealias ErrorHandler = (Error)->Void
+    public typealias AdditionalChangeHandler = (Query.BaseResultData)->Query.BaseResultData?
+    public typealias ErrorHandler = (Error)->Void
 
     // Listener Registration
     private var listenerRegistration: ListenerRegistration?
