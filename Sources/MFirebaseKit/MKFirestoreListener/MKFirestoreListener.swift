@@ -41,7 +41,7 @@ extension MKFirestoreListener {
 }
 
 public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: ObservableObject {
-    public typealias AdditionalChangeHandler = (Query.BaseResultData)->Query.BaseResultData?
+    public typealias AdditionalChangeHandler = (Query.BaseResultData) async ->Query.BaseResultData?
     public typealias ErrorHandler = (Error)->Void
 
     // Listener Registration
@@ -102,42 +102,46 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
     
     public func onAdded(_ object: Query.BaseResultData) {
         guard isListening else { return }
-        var newObject: Query.BaseResultData? = object
-        if let onAddedAdditionalHandler {
-            newObject = onAddedAdditionalHandler(object)
-        }
-        
-        guard let newObject else { return }
-        
-        if isMockedListener {
-            self.objects.append(newObject)
-        } else {
-            DispatchQueue.main.async {
+        Task {
+            var newObject: Query.BaseResultData? = object
+            if let onAddedAdditionalHandler {
+                newObject = await onAddedAdditionalHandler(object)
+            }
+            
+            guard let newObject else { return }
+            
+            if isMockedListener {
                 self.objects.append(newObject)
+            } else {
+                DispatchQueue.main.async {
+                    self.objects.append(newObject)
+                }
             }
         }
     }
     
     public func onModified(_ object: Query.BaseResultData) {
         guard isListening else { return }
-        var newObject: Query.BaseResultData? = object
-        if let onModifiedAdditionalHandler {
-            newObject = onModifiedAdditionalHandler(object)
-        }
-        guard let newObject else { return }
-        
-        if isMockedListener {
-            if let index = self.objects.firstIndex(where: { $0.id == newObject.id }) {
-                self.objects[index] = newObject
-            } else {
-                self.objects.append(newObject)
+        Task {
+            var newObject: Query.BaseResultData? = object
+            if let onModifiedAdditionalHandler {
+                newObject = await onModifiedAdditionalHandler(object)
             }
-        } else {
-            DispatchQueue.main.async {
+            guard let newObject else { return }
+            
+            if isMockedListener {
                 if let index = self.objects.firstIndex(where: { $0.id == newObject.id }) {
                     self.objects[index] = newObject
                 } else {
                     self.objects.append(newObject)
+                }
+            } else {
+                DispatchQueue.main.async {
+                    if let index = self.objects.firstIndex(where: { $0.id == newObject.id }) {
+                        self.objects[index] = newObject
+                    } else {
+                        self.objects.append(newObject)
+                    }
                 }
             }
         }
@@ -145,18 +149,20 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
     
     public func onRemoved(_ object: Query.BaseResultData) {
         guard isListening else { return }
-        var removedObject: Query.BaseResultData? = object
-        if let onRemovedAdditionalHandler {
-            removedObject = onRemovedAdditionalHandler(object)
-        }
-        
-        guard let removedObject else { return }
-        
-        if isMockedListener {
-            self.objects.removeAll(where: { $0.id == removedObject.id })
-        } else {
-            DispatchQueue.main.async {
+        Task {
+            var removedObject: Query.BaseResultData? = object
+            if let onRemovedAdditionalHandler {
+                removedObject = await onRemovedAdditionalHandler(object)
+            }
+            
+            guard let removedObject else { return }
+            
+            if isMockedListener {
                 self.objects.removeAll(where: { $0.id == removedObject.id })
+            } else {
+                DispatchQueue.main.async {
+                    self.objects.removeAll(where: { $0.id == removedObject.id })
+                }
             }
         }
     }
