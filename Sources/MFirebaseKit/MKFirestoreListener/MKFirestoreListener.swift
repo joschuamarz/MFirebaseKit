@@ -51,7 +51,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
     }
 
     @Published public var objects: [Query.BaseResultData] = []
-    let query: Query
+    var query: Query
     private let firestore: MKFirestore
     
     // Handler
@@ -92,6 +92,11 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
         listenerRegistration = nil
     }
     
+    public func replaceQuery(with query: Query) {
+        stopListening()
+        self.query = query
+    }
+    
     // MARK: - Error Handling
     public func handle(_ error: Error) {
         // handle error
@@ -99,7 +104,6 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
     }
     
     // MARK: - Object change handling
-    
     public func onAdded(_ object: Query.BaseResultData) {
         guard isListening else { return }
         Task {
