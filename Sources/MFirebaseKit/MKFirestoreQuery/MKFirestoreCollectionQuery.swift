@@ -23,6 +23,22 @@ public protocol MKFirestoreCollectionQuery: MKFirestoreQuery {
     var filters: [MKFirestoreQueryFilter] { get }
 }
 
+extension MKFirestoreCollectionQuery {
+    var id: String {
+        return collectionReference.rawPath
+        + "-\(orderDescriptor.debugDescription)"
+        + "-\(limit.debugDescription)"
+        + "-\(filters.debugDescription)"
+    }
+    
+    func isEqual(to otherQuery: any MKFirestoreCollectionQuery) -> Bool {
+        print(id)
+        print(otherQuery.id)
+        return id == otherQuery.id
+    }
+}
+
+
 public struct OrderDescriptor {
     /// The name of the field that should be used for ordering the data
     var orderByFieldName: String
@@ -58,6 +74,7 @@ public struct MKFirestoreCollectionQueryResponse<Query: MKFirestoreCollectionQue
 }
 
 public enum MKFirestoreQueryFilter {
+    
     case valueIn(_ fieldName: String, _ array: [Any])
     case valueNotIn(_ fieldName: String, _ array: [Any])
     case stringStartsWith(_ fieldName: String, _ prefix: String)
