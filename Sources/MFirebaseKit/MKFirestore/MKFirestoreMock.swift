@@ -20,7 +20,7 @@ public class MKFirestoreMock: MKFirestore {
             try? await Task.sleep(nanoseconds: 1000000000)
             
             for mock in listener.query.mockResultData {
-                listener.onAdded(mock)
+                listener.onAdded(mock, listener.query)
             }
             
             guard listenerMockMode == .auto else { return }
@@ -30,17 +30,17 @@ public class MKFirestoreMock: MKFirestore {
                 let last = mocks.removeLast()
                 // remove
                 try? await Task.sleep(nanoseconds: 1000000000)
-                listener.onRemoved(last)
+                listener.onRemoved(last, listener.query)
                 
                 try? await Task.sleep(nanoseconds: 1000000000)
                 let secondLast = mocks.removeLast()
-                listener.onRemoved(secondLast)
+                listener.onRemoved(secondLast, listener.query)
                 
                 try? await Task.sleep(nanoseconds: 1000000000)
-                listener.onAdded(secondLast)
+                listener.onAdded(secondLast, listener.query)
                 
                 try? await Task.sleep(nanoseconds: 1000000000)
-                listener.onAdded(last)
+                listener.onAdded(last, listener.query)
             }
         }
         

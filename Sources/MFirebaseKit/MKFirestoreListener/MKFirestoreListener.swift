@@ -104,7 +104,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
     }
     
     // MARK: - Object change handling
-    public func onAdded(_ object: Query.BaseResultData) {
+    public func onAdded(_ object: Query.BaseResultData, _ query: Query) {
         guard isListening else { return }
         Task {
             var newObject: Query.BaseResultData? = object
@@ -115,16 +115,18 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
             guard let newObject else { return }
             
             if isMockedListener {
+                guard isListening && query.isEqual(to: self.query) else { return }
                 self.objects.append(newObject)
             } else {
                 DispatchQueue.main.async {
+                    guard self.isListening && query.isEqual(to: self.query) else { return }
                     self.objects.append(newObject)
                 }
             }
         }
     }
     
-    public func onModified(_ object: Query.BaseResultData) {
+    public func onModified(_ object: Query.BaseResultData, _ query: Query) {
         guard isListening else { return }
         Task {
             var newObject: Query.BaseResultData? = object
@@ -142,8 +144,10 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
             } else {
                 DispatchQueue.main.async {
                     if let index = self.objects.firstIndex(where: { $0.id == newObject.id }) {
+                        guard self.isListening && query.isEqual(to: self.query) else { return }
                         self.objects[index] = newObject
                     } else {
+                        guard self.isListening && query.isEqual(to: self.query) else { return }
                         self.objects.append(newObject)
                     }
                 }
@@ -151,7 +155,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
         }
     }
     
-    public func onRemoved(_ object: Query.BaseResultData) {
+    public func onRemoved(_ object: Query.BaseResultData, _ query: Query) {
         guard isListening else { return }
         Task {
             var removedObject: Query.BaseResultData? = object
@@ -162,9 +166,11 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
             guard let removedObject else { return }
             
             if isMockedListener {
+                guard isListening && query.isEqual(to: self.query) else { return }
                 self.objects.removeAll(where: { $0.id == removedObject.id })
             } else {
                 DispatchQueue.main.async {
+                    guard self.isListening && query.isEqual(to: self.query) else { return }
                     self.objects.removeAll(where: { $0.id == removedObject.id })
                 }
             }
@@ -173,27 +179,27 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
     
     // MARK: - Universal change handler
     func handle(_ changes: [DocumentChange]?, error: Error?, for query: Query) {
-        guard isListening && query == self.query else { return }
+        guard isListening && query.isEqual(to: self.query) else { return }
         guard let changes else {
             if let error { handle(error) }
             return
         }
         
         for change in changes {
-            let changeHandler: (Query.BaseResultData)->Void
+            let changeHandler: (Query.BaseResultData, Query)->Void
             
             switch change.type {
             case .added:
-                changeHandler = onAdded(_:)
+                changeHandler = onAdded
             case .modified:
-                changeHandler = onModified(_:)
+                changeHandler = onModified
             case .removed:
-                changeHandler = onRemoved(_:)
+                changeHandler = onRemoved
             }
             
             do {
                 let object = try change.document.data(as: Query.BaseResultData.self)
-                changeHandler(object)
+                changeHandler(object, query)
             } catch {
                 handle(error)
             }

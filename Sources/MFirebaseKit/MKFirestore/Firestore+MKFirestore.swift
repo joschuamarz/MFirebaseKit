@@ -142,7 +142,7 @@ extension Firestore: MKFirestore {
         }
         
         return firestoreQuery.addSnapshotListener { snapshot, error in
-            listener.handle(snapshot?.documentChanges, error: error)
+            listener.handle(snapshot?.documentChanges, error: error, for: listener.query)
         }
     }
     
