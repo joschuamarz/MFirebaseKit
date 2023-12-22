@@ -84,7 +84,6 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
     // MARK: - State
     public func startListening() {
         guard !isListening else { return }
-        didFinishInitialLoad = false
         listenerRegistration = firestore.addCollectionListener(self)
     }
     
@@ -92,6 +91,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
         listenerRegistration?.remove()
         objects.removeAll()
         listenerRegistration = nil
+        didFinishInitialLoad = false
     }
     
     public func replaceQuery(with query: Query) {
