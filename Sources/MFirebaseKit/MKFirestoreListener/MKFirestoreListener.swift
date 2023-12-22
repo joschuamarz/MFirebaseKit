@@ -56,6 +56,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
     private let firestore: MKFirestore
     
     // Handler
+    private let onDidFinishInitialLoading: (()->Void)?
     private let onAddedAdditionalHandler: AdditionalChangeHandler?
     private let onModifiedAdditionalHandler: AdditionalChangeHandler?
     private let onRemovedAdditionalHandler: AdditionalChangeHandler?
@@ -67,14 +68,16 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
     
     // MARK: - Init
     public init(query: Query,
-         firestore: MKFirestore,
-         onAddedAdditionalHandler: AdditionalChangeHandler? = nil,
-         onModifiedAdditionalHandler: AdditionalChangeHandler? = nil,
-         onRemovedAdditionalHandler: AdditionalChangeHandler? = nil,
-         onErrorHandler: ErrorHandler? = nil
+                firestore: MKFirestore,
+                onDidFinishInitialLoading: (()->Void)? = nil,
+                onAddedAdditionalHandler: AdditionalChangeHandler? = nil,
+                onModifiedAdditionalHandler: AdditionalChangeHandler? = nil,
+                onRemovedAdditionalHandler: AdditionalChangeHandler? = nil,
+                onErrorHandler: ErrorHandler? = nil
     ) {
         self.query = query
         self.firestore = firestore
+        self.onDidFinishInitialLoading = onDidFinishInitialLoading
         self.onAddedAdditionalHandler = onAddedAdditionalHandler
         self.onModifiedAdditionalHandler = onModifiedAdditionalHandler
         self.onRemovedAdditionalHandler = onRemovedAdditionalHandler
@@ -184,6 +187,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
         guard isListening && query.isEqual(to: self.query) else { return }
         if !didFinishInitialLoad {
             didFinishInitialLoad = true
+            onDidFinishInitialLoading?()
         }
         guard let changes else {
             if let error { handle(error) }
