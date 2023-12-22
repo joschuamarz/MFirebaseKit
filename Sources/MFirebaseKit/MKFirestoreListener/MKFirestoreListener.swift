@@ -50,6 +50,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
         return listenerRegistration != nil
     }
 
+    @Published public var didFinishInitialLoad: Bool = false
     @Published public var objects: [Query.BaseResultData] = []
     var query: Query
     private let firestore: MKFirestore
@@ -83,6 +84,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
     // MARK: - State
     public func startListening() {
         guard !isListening else { return }
+        didFinishInitialLoad = false
         listenerRegistration = firestore.addCollectionListener(self)
     }
     
@@ -180,6 +182,9 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
     // MARK: - Universal change handler
     func handle(_ changes: [DocumentChange]?, error: Error?, for query: Query) {
         guard isListening && query.isEqual(to: self.query) else { return }
+        if !didFinishInitialLoad {
+            didFinishInitialLoad = true
+        }
         guard let changes else {
             if let error { handle(error) }
             return
