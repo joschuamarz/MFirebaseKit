@@ -122,10 +122,12 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
             if isMockedListener {
                 guard isListening && query.isEqual(to: self.query) else { return }
                 self.objects.append(newObject)
+                self.publishInitialLoading()
             } else {
                 DispatchQueue.main.async {
                     guard self.isListening && query.isEqual(to: self.query) else { return }
                     self.objects.append(newObject)
+                    self.publishInitialLoading()
                 }
             }
         }
@@ -141,6 +143,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
             guard let newObject else { return }
             
             if isMockedListener {
+                guard self.isListening && query.isEqual(to: self.query) else { return }
                 if let index = self.objects.firstIndex(where: { $0.id == newObject.id }) {
                     self.objects[index] = newObject
                 } else {
@@ -148,13 +151,13 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
                 }
             } else {
                 DispatchQueue.main.async {
+                    guard self.isListening && query.isEqual(to: self.query) else { return }
                     if let index = self.objects.firstIndex(where: { $0.id == newObject.id }) {
-                        guard self.isListening && query.isEqual(to: self.query) else { return }
                         self.objects[index] = newObject
                     } else {
-                        guard self.isListening && query.isEqual(to: self.query) else { return }
                         self.objects.append(newObject)
                     }
+                    self.publishInitialLoading()
                 }
             }
         }
@@ -173,19 +176,28 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
             if isMockedListener {
                 guard isListening && query.isEqual(to: self.query) else { return }
                 self.objects.removeAll(where: { $0.id == removedObject.id })
+                self.publishInitialLoading()
             } else {
                 DispatchQueue.main.async {
                     guard self.isListening && query.isEqual(to: self.query) else { return }
                     self.objects.removeAll(where: { $0.id == removedObject.id })
+                    self.publishInitialLoading()
                 }
             }
+        }
+    }
+    
+    private func publishInitialLoading() {
+        if !didFinishInitialLoad {
+            didFinishInitialLoad = true
+            onDidFinishInitialLoading?()
         }
     }
     
     // MARK: - Universal change handler
     func handle(_ changes: [DocumentChange]?, error: Error?, for query: Query) {
         guard isListening && query.isEqual(to: self.query) else { return }
-        if !didFinishInitialLoad {
+        if !didFinishInitialLoad && (changes?.isEmpty ?? true) {
             didFinishInitialLoad = true
             onDidFinishInitialLoading?()
         }
