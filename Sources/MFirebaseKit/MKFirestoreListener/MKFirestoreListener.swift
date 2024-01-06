@@ -109,6 +109,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
     }
     
     // MARK: - Object change handling
+
     public func onAdded(_ object: Query.BaseResultData, _ query: Query) {
         guard isListening else { return }
         Task {
@@ -205,25 +206,63 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
             if let error { handle(error) }
             return
         }
-        
-        for change in changes {
-            let changeHandler: (Query.BaseResultData, Query)->Void
-            
-            switch change.type {
-            case .added:
-                changeHandler = onAdded
-            case .modified:
-                changeHandler = onModified
-            case .removed:
-                changeHandler = onRemoved
+        Task {
+            var results = self.objects
+            for change in changes {
+                do {
+                    let object = try change.document.data(as: Query.BaseResultData.self)
+                    switch change.type {
+                    case .added:
+                        if let newObject = await onAddedFactory(object) {
+                            results.append(newObject)
+                        }
+                    case .modified:
+                        if let newObject = await onModifiedFactory(object) {
+                            if let index = results.firstIndex(where: { $0.id == newObject.id }) {
+                                results[index] = newObject
+                            } else {
+                                results.append(newObject)
+                            }
+                        }
+                    case .removed:
+                        if let newObject = await onModifiedFactory(object) {
+                            results.removeAll(where: { $0.id == newObject.id })
+                        }
+                    }
+                } catch {
+                    handle(error)
+                }
             }
-            
-            do {
-                let object = try change.document.data(as: Query.BaseResultData.self)
-                changeHandler(object, query)
-            } catch {
-                handle(error)
+            let finalResults = results
+            print("$ MKFirestoreListener: processed \(changes.count) changes")
+            DispatchQueue.main.async {
+                self.objects = finalResults
+                self.publishInitialLoading()
             }
         }
+    }
+    
+    private func onAddedFactory(_ object: Query.BaseResultData) async -> Query.BaseResultData? {
+        var newObject: Query.BaseResultData? = object
+        if let onAddedAdditionalHandler {
+            newObject = await onAddedAdditionalHandler(object)
+        }
+        return newObject
+    }
+    
+    private func onModifiedFactory(_ object: Query.BaseResultData) async -> Query.BaseResultData? {
+        var newObject: Query.BaseResultData? = object
+        if let onModifiedAdditionalHandler {
+            newObject = await onModifiedAdditionalHandler(object)
+        }
+        return newObject
+    }
+    
+    private func onRemovedFactory(_ object: Query.BaseResultData) async -> Query.BaseResultData? {
+        var newObject: Query.BaseResultData? = object
+        if let onRemovedAdditionalHandler {
+            newObject = await onRemovedAdditionalHandler(object)
+        }
+        return newObject
     }
 }
