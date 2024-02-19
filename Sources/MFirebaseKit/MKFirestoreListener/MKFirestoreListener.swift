@@ -66,6 +66,8 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
         return firestore is MKFirestoreMock
     }
     
+    public var onAddedOrModifiedProcessor: ((Query.BaseResultData) async -> Query.BaseResultData)?
+    
     // MARK: - Init
     public init(query: Query,
                 firestore: MKFirestore,
@@ -264,5 +266,17 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
             newObject = await onRemovedAdditionalHandler(object)
         }
         return newObject
+    }
+    
+    private func processOnAddedOrModifiedIfNeeded(on object: Query.BaseResultData) {
+        guard let onAddedOrModifiedProcessor else { return }
+        Task {
+            let modifiedObject = await onAddedOrModifiedProcessor(object)
+            DispatchQueue.main.async {
+                if let index = self.objects.firstIndex(where: { $0.id == object.id }) {
+                    self.objects[index] = modifiedObject
+                }
+            }
+        }
     }
 }
