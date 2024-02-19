@@ -217,6 +217,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
                     case .added:
                         if let newObject = await onAddedFactory(object) {
                             results.append(newObject)
+                            self.processOnAddedOrModifiedIfNeeded(on: newObject)
                         }
                     case .modified:
                         if let newObject = await onModifiedFactory(object) {
@@ -225,6 +226,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
                             } else {
                                 results.append(newObject)
                             }
+                            self.processOnAddedOrModifiedIfNeeded(on: newObject)
                         }
                     case .removed:
                         if let newObject = await onModifiedFactory(object) {
