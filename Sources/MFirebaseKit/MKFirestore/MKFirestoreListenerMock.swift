@@ -124,6 +124,10 @@ extension Array {
     func isEqualTo(_ object: Any, _ fieldName: String, _ value: Any) -> Bool {
         let mirror = Mirror(reflecting: object)
         
+        if fieldName == "id", let object = object as? (any Identifiable), isAny(object.id, equalTo: value) {
+            return true
+        }
+        
         for (name, propVal) in mirror.children {
             if let propertyName = name, propertyName == fieldName {
                 return isAny(propVal, equalTo: value)
