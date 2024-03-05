@@ -56,11 +56,11 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
     private let firestore: MKFirestore
     
     // Handler
-    private let onDidFinishInitialLoading: (()->Void)?
-    private let onAddedAdditionalHandler: AdditionalChangeHandler?
-    private let onModifiedAdditionalHandler: AdditionalChangeHandler?
-    private let onRemovedAdditionalHandler: AdditionalChangeHandler?
-    private let onErrorHandler: ErrorHandler?
+    public var onDidFinishInitialLoading: (()->Void)?
+    public var onAddedAdditionalHandler: AdditionalChangeHandler?
+    public var onModifiedAdditionalHandler: AdditionalChangeHandler?
+    public var onRemovedAdditionalHandler: AdditionalChangeHandler?
+    public var onErrorHandler: ErrorHandler?
     
     private var isMockedListener: Bool {
         return firestore is MKFirestoreMock

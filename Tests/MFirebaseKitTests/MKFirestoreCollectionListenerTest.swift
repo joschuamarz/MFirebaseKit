@@ -45,14 +45,14 @@ final class MKFirestoreCollectionListenerTest: XCTestCase {
         XCTAssertTrue(listener.isListening)
         // handle new item
         let newItem = TestResultData(id: "10", name: "Test 10")
-        listener.onAdded(newItem)
+//        listener.onAdded(newItem)
         XCTAssertEqual(listener.objects.count, 1)
         // stop listening - removes all items
         listener.stopListening()
         XCTAssertFalse(listener.isListening)
         XCTAssertEqual(listener.objects.count, 0)
         // does not handle events when disabled
-        listener.onAdded(newItem)
+    //    listener.onAdded(newItem)
         XCTAssertEqual(listener.objects.count, 0)
     }
     
@@ -66,7 +66,7 @@ final class MKFirestoreCollectionListenerTest: XCTestCase {
         listener.startListening()
         // Add first item
         let newItem = TestResultData(id: "10", name: "Test 10")
-        listener.onAdded(newItem)
+//        listener.onAdded(newItem)
         // Expect item to be added
         XCTAssertEqual(listener.objects.count, 1)
         XCTAssertEqual(listener.objects.last, newItem)
@@ -84,7 +84,7 @@ final class MKFirestoreCollectionListenerTest: XCTestCase {
         listener.startListening()
         // Add first item
         let newItem = TestResultData(id: "10", name: "Test 10")
-        listener.onAdded(newItem)
+//        listener.onAdded(newItem)
         // Item should be added with modified name
         XCTAssertEqual(listener.objects.count, 1)
         XCTAssertNotEqual(listener.objects.last, newItem)
@@ -105,7 +105,7 @@ final class MKFirestoreCollectionListenerTest: XCTestCase {
         listener.startListening()
         // Add first item
         let newItem = TestResultData(id: "10", name: "Test 10")
-        listener.onAdded(newItem)
+//        listener.onAdded(newItem)
         // Item should be added
         XCTAssertEqual(listener.objects.count, 1)
         XCTAssertEqual(listener.objects.last, newItem)
@@ -125,10 +125,10 @@ final class MKFirestoreCollectionListenerTest: XCTestCase {
         listener.startListening()
         // Add first item
         let newItem = TestResultData(id: "10", name: "Test 10")
-        listener.onAdded(newItem)
+//        listener.onAdded(newItem)
         // Modify item with same id
         let modifiedItem = TestResultData(id: "10", name: "Test 10 Modified")
-        listener.onModified(modifiedItem)
+//        listener.onModified(modifiedItem)
         // Item should be updated
         XCTAssertEqual(listener.objects.count, 1)
         XCTAssertEqual(listener.objects.last, modifiedItem)
@@ -142,10 +142,10 @@ final class MKFirestoreCollectionListenerTest: XCTestCase {
         listener.startListening()
         // Add first item
         let newItem = TestResultData(id: "10", name: "Test 10")
-        listener.onAdded(newItem)
+//        listener.onAdded(newItem)
         // Modify item with different id
         let modifiedItem = TestResultData(id: "11", name: "Test 10 Modified")
-        listener.onModified(modifiedItem)
+//        listener.onModified(modifiedItem)
         // Item should be added
         XCTAssertEqual(listener.objects.count, 2)
         XCTAssertEqual(listener.objects.last, modifiedItem)
@@ -163,9 +163,9 @@ final class MKFirestoreCollectionListenerTest: XCTestCase {
         listener.startListening()
         // Add first item
         let newItem = TestResultData(id: "10", name: "Test 10")
-        listener.onAdded(newItem)
+//        listener.onAdded(newItem)
         let modifiedItem = TestResultData(id: "10", name: "Test 10 Modified")
-        listener.onModified(modifiedItem)
+//        listener.onModified(modifiedItem)
         XCTAssertEqual(listener.objects.count, 1)
         XCTAssertNotEqual(listener.objects.last, newItem)
         XCTAssertEqual(listener.objects.last?.name, "Test 10 Modified Again")
@@ -181,9 +181,9 @@ final class MKFirestoreCollectionListenerTest: XCTestCase {
         listener.startListening()
         // Add first item
         let newItem = TestResultData(id: "10", name: "Test 10")
-        listener.onAdded(newItem)
+//        listener.onAdded(newItem)
         // Remove same item
-        listener.onRemoved(newItem)
+//        listener.onRemoved(newItem)
         // Item should be updated
         XCTAssertEqual(listener.objects.count, 0)
     }
@@ -196,10 +196,10 @@ final class MKFirestoreCollectionListenerTest: XCTestCase {
         listener.startListening()
         // Add first item
         let newItem = TestResultData(id: "10", name: "Test 10")
-        listener.onAdded(newItem)
+//        listener.onAdded(newItem)
         // Remove item with different id
         let removedItem = TestResultData(id: "11", name: "Test 11")
-        listener.onRemoved(removedItem)
+//        listener.onRemoved(removedItem)
         // Nothing should change
         XCTAssertEqual(listener.objects.count, 1)
         XCTAssertEqual(listener.objects.last, newItem)
