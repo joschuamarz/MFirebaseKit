@@ -150,7 +150,7 @@ extension Array {
         
         for (name, propVal) in mirror.children {
             if let propertyName = name, propertyName == fieldName {
-                return !isAny(propVal, lessThan: value)
+                return isAny(propVal, lessThan: value)
             }
         }
         
@@ -162,7 +162,7 @@ extension Array {
         
         for (name, propVal) in mirror.children {
             if let propertyName = name, propertyName == fieldName {
-                return !isAny(propVal, greaterThan: value)
+                return isAny(propVal, greaterThan: value)
             }
         }
         
