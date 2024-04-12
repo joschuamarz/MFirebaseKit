@@ -14,6 +14,7 @@ let package = Package(
         .library(
             name: "MFirebaseKit",
             targets: ["MFirebaseKit"]),
+        .library(name: "MFirebaseKitDebug", targets: ["MFirebaseKitDebug"])
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
