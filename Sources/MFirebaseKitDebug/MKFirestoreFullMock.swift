@@ -6,6 +6,7 @@
 //
 
 import FirebaseFirestore
+@testable import MFirebaseKit
 import XCTest
 
 public struct MKFirestoreFullMockData {
