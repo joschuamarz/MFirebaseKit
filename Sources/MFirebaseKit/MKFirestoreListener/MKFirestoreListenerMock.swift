@@ -8,15 +8,7 @@
 import Foundation
 import FirebaseFirestore
 
-protocol MKFirestoreCollectionListenerProtocol {
-    associatedtype Query: MKFirestoreCollectionQuery
-    func startListening()
-    func stopListening()
-    var objects: [Query.BaseResultData] { get }
-}
-
 public class MKFirestoreListenerMock<BaseResultType: Codable & Identifiable>: MKFirestore {
-    
     private var objects: [BaseResultType] = [] {
         didSet {
             changeHandler?(objects)
@@ -28,6 +20,7 @@ public class MKFirestoreListenerMock<BaseResultType: Codable & Identifiable>: MK
     }
     
     public func executeCollectionQuery<T>(_ query: T) -> MKFirestoreCollectionQueryResponse<T> where T : MKFirestoreCollectionQuery {
+        
         if T.BaseResultData.self == BaseResultType.self {
             let results = objects.applyFilters(query.filters) as? [T.BaseResultData]
             return .init(error: nil, responseData: results)
@@ -119,6 +112,15 @@ extension Array {
             }
         }
         return modifiedArray
+    }
+    
+    mutating func removeAllMatching(fieldName: String, value: Any) {
+        let filteredItems = self.filter { !isEqualTo($0, fieldName, value) }
+        self = filteredItems
+    }
+    
+    func firstIndexMatching(fieldName: String, value: Any) -> Int? {
+        return self.firstIndex(where: { isEqualTo($0, fieldName, value)})
     }
     
     func isEqualTo(_ object: Any, _ fieldName: String, _ value: Any) -> Bool {

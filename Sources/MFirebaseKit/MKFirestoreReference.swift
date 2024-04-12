@@ -19,16 +19,33 @@ public class MKFirestoreReference {
     var leafId: String? {
         return rawPath.components(separatedBy: "/").last
     }
+    
+    var leafCollectionPath: String {
+        ""
+    }
 }
 
 public class MKFirestoreCollectionReference: MKFirestoreReference {
     public func document(_ documentId: String) -> MKFirestoreDocumentReference {
         return MKFirestoreDocumentReference(rawPath: rawPath + "/" + documentId)
     }
+    
+    override var leafCollectionPath: String {
+        return rawPath
+    }
 }
 
 public class MKFirestoreDocumentReference: MKFirestoreReference {
     public func collection(_ collectionName: String) -> MKFirestoreCollectionReference {
         return MKFirestoreCollectionReference(rawPath: rawPath + "/" + collectionName)
+    }
+    
+    override var leafCollectionPath: String {
+        var path = rawPath.components(separatedBy: "/")
+        guard path.count >= 2 else { return "" }
+        // remove document
+        path.removeLast()
+        
+        return path.joined(separator: "/")
     }
 }

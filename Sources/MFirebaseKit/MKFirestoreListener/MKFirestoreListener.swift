@@ -40,11 +40,12 @@ extension MKFirestoreListener {
     }
 }
 
-public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: ObservableObject {
+public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: ObservableObject, Identifiable {
     public typealias AdditionalChangeHandler = (Query.BaseResultData) async ->Query.BaseResultData?
     public typealias ErrorHandler = (Error)->Void
 
     // Listener Registration
+    public let id: String = UUID().uuidString
     private var listenerRegistration: ListenerRegistration?
     public var isListening: Bool {
         return listenerRegistration != nil
@@ -279,6 +280,15 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
                     self.objects[index] = modifiedObject
                 }
             }
+        }
+    }
+}
+
+extension MKFirestoreCollectionListener {
+    func handleMockChanges(_ dataMap: [String: [Any]]) {
+        let key = query.firestoreReference.leafCollectionPath
+        if let objects = dataMap[key] as? [Query.BaseResultData] {
+            self.objects = objects
         }
     }
 }

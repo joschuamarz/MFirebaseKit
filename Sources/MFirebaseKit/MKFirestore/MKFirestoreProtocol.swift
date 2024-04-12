@@ -54,7 +54,7 @@ public protocol MKFirestore {
     func addCollectionListener<T: MKFirestoreCollectionQuery>(_ listener: MKFirestoreCollectionListener<T>) -> ListenerRegistration
 }
 
-// MARK:  Default Implementations
+// MARK: - Default Implementations
 
 extension MKFirestore {
     
@@ -100,23 +100,48 @@ extension MKFirestore {
     }
 }
 
-public struct MKPaginatedQuery<Query: MKFirestoreCollectionQuery>: MKFirestoreCollectionQuery {
-    public typealias BaseResultData = Query.BaseResultData
-    
-    public var collectionReference: MKFirestoreCollectionReference
-    public var orderDescriptor: OrderDescriptor?
-    public var filters: [MKFirestoreQueryFilter]
-    public var limit: Int?
-    let lastDocument: DocumentSnapshot?
-    
-    init(query: Query, limit: Int?, startAfter document: DocumentSnapshot?) {
-        self.collectionReference = query.collectionReference
-        self.mockResultData = query.mockResultData
-        self.orderDescriptor = query.orderDescriptor
-        self.filters = query.filters
-        self.limit = limit
-        self.lastDocument = document
+// MARK: - Overloads
+extension MKFirestore {
+    // Queries
+    public func execute<Q: MKFirestoreDocumentQuery>(_ query: Q) async -> MKFirestoreDocumentQueryResponse<Q> {
+        return await executeDocumentQuery(query)
     }
     
-    public let mockResultData: [Query.BaseResultData]
+    public func execute<Q: MKFirestoreDocumentQuery>(_ query: Q, completion: @escaping (MKFirestoreDocumentQueryResponse<Q>)->Void) {
+        executeDocumentQuery(query, completion: completion)
+    }
+    
+    public func execute<Q: MKFirestoreCollectionQuery>(_ query: Q) async -> MKFirestoreCollectionQueryResponse<Q> {
+        return await executeCollectionQuery(query)
+    }
+    
+    public func execute<Q: MKFirestoreCollectionQuery>(_ query: Q, completion: @escaping (MKFirestoreCollectionQueryResponse<Q>)->Void) {
+        executeCollectionQuery(query, completion: completion)
+    }
+    
+    // Mutations
+    @discardableResult
+    public func execute(_ mutation: MKFirestoreDocumentMutation) async -> MKFirestoreMutationResponse {
+        return await executeMutation(mutation)
+    }
+    
+    func execute(_ mutation: MKFirestoreDocumentMutation, completion: @escaping (MKFirestoreMutationResponse)->Void) {
+        executeMutation(mutation, completion: completion)
+    }
+    
+    // Deletions
+    func execute(_ deletion: MKFirestoreDocumentDeletion) {
+        executeDeletion(deletion)
+    }
+    
+    @discardableResult
+    func execute(_ deletion: MKFirestoreDocumentDeletion) async -> MKFirestoreError? {
+        return await executeDeletion(deletion)
+    }
+    
+    func execute(_ deletion: MKFirestoreDocumentDeletion, completion: @escaping (MKFirestoreError?)->Void) {
+        executeDeletion(deletion, completion: completion)
+    }
 }
+
+

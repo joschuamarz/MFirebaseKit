@@ -149,7 +149,7 @@ extension Firestore: MKFirestore {
     public func addCollectionListener<T: MKFirestoreListener>(_ listener: T) {
         if let query = listener.query as? any MKFirestoreCollectionQuery {
             let collectionReference = self.collection(query.firestoreReference.rawPath)
-            let newL = collectionReference.addSnapshotListener { snapshot, error in
+            _ = collectionReference.addSnapshotListener { snapshot, error in
                 listener.handle(snapshot?.documentChanges, error: error)
             }
         }
