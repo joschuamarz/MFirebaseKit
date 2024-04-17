@@ -17,9 +17,9 @@ public struct MKFirestoreFullMockData {
     }
 }
 
-public class MKFirestoreFullMock: MKFirestore {
-    typealias Handler = ([String: [Any]])->Void
-    var dataMap: [String: [Any]] = [:] {
+open class MKFirestoreFullMock: MKFirestore {
+    public typealias Handler = ([String: [Any]])->Void
+    public var dataMap: [String: [Any]] = [:] {
         didSet {
             activeListeners.forEach { listener in
                 listener.value(dataMap)
@@ -27,7 +27,7 @@ public class MKFirestoreFullMock: MKFirestore {
         }
     }
     
-    var activeListeners: [String:Handler] = [:]
+    public var activeListeners: [String:Handler] = [:]
     
     public init(mockData: [MKFirestoreFullMockData] = []) {
         var data: [String: [Any]] = [:]
@@ -43,25 +43,25 @@ public class MKFirestoreFullMock: MKFirestore {
         self.dataMap = data
     }
     
-    public func executeCollectionQuery<T>(_ query: T) -> MKFirestoreCollectionQueryResponse<T> where T : MKFirestoreCollectionQuery {
+    open func executeCollectionQuery<T>(_ query: T) -> MKFirestoreCollectionQueryResponse<T> where T : MKFirestoreCollectionQuery {
         let responseData = dataMap[query.firestoreReference.rawPath] as? [T.BaseResultData]
         return .init(error: nil, responseData: responseData?.applyFilters(query.filters))
     }
     
-    public func executeDocumentQuery<T>(_ query: T) -> MKFirestoreDocumentQueryResponse<T> where T : MKFirestoreDocumentQuery {
+    open func executeDocumentQuery<T>(_ query: T) -> MKFirestoreDocumentQueryResponse<T> where T : MKFirestoreDocumentQuery {
         let id = query.firestoreReference.leafId ?? "non-existing-id"
         let objects = dataMap[query.documentReference.leafCollectionPath] as? [T.ResultData]
         return .init(error: nil, responseData: objects?.applyFilters([.isEqualTo("id", id)]).first)
     }
     
-    public func executeDeletion(_ deletion: MKFirestoreDocumentDeletion) -> MKFirestoreError? {
+    open func executeDeletion(_ deletion: MKFirestoreDocumentDeletion) -> MKFirestoreError? {
         let id = deletion.firestoreReference.leafId ?? "non-existing-id"
         dataMap[deletion.documentReference.leafCollectionPath]?.removeAllMatching(fieldName: "id", value: id)
         return nil
     }
     
     @discardableResult
-    public func executeMutation(_ mutation: MKFirestoreDocumentMutation) -> MKFirestoreMutationResponse {
+    open func executeMutation(_ mutation: MKFirestoreDocumentMutation) -> MKFirestoreMutationResponse {
         let object = mutation.operation.object as Any
         let id = mutation.firestoreReference.leafId ?? "non-existing-id"
         let key = mutation.firestoreReference.leafCollectionPath
@@ -76,7 +76,7 @@ public class MKFirestoreFullMock: MKFirestore {
         return .init(documentId: documentId.flatMap({ "\($0)" }), error: nil)
     }
     
-    public func addCollectionListener<T>(_ listener: MKFirestoreCollectionListener<T>) -> ListenerRegistration where T : MKFirestoreCollectionQuery {
+    open func addCollectionListener<T>(_ listener: MKFirestoreCollectionListener<T>) -> ListenerRegistration where T : MKFirestoreCollectionQuery {
         // register listener
         activeListeners.updateValue(listener.handleMockChanges(_:), forKey: listener.id)
         // fill initial data
@@ -86,8 +86,4 @@ public class MKFirestoreFullMock: MKFirestore {
             self.activeListeners.removeValue(forKey: listener.id)
         })
     }
-    
-    
 }
-
-

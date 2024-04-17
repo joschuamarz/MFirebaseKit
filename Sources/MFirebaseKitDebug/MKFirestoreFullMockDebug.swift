@@ -6,8 +6,8 @@
 //
 
 import Foundation
-@testable import MFirebaseKit
 import XCTest
+@_exported import MFirebaseKit
 
 public class MKFirestoreExpectation: XCTestExpectation {
     public enum QueryType: String {
