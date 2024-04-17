@@ -14,7 +14,10 @@ let package = Package(
         .library(
             name: "MFirebaseKit",
             targets: ["MFirebaseKit"]),
-        .library(name: "MFirebaseKitDebug", targets: ["MFirebaseKitDebug"])
+        .library(
+            name: "MFirebaseKitDebug",
+            targets: ["MFirebaseKitDebug"]
+        )
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -43,6 +46,6 @@ let package = Package(
             ]),
         .testTarget(
             name: "MFirebaseKitTests",
-            dependencies: ["MFirebaseKit"]),
+            dependencies: ["MFirebaseKit", "MFirebaseKitDebug"]),
     ]
 )

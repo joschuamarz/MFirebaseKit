@@ -6,6 +6,7 @@
 //
 
 import XCTest
+@testable import MFirebaseKitDebug
 @testable import MFirebaseKit
 
 final class MKFirestoreFullMockTest: XCTestCase {
@@ -36,7 +37,7 @@ final class MKFirestoreFullMockTest: XCTestCase {
             firestoreReference: .collection("Main").document("Test").collection("Recipes"),
             data: recipes
         )
-        let firestore = MKFirestoreFullMock(mockData: [mockData], expectations: [expectation])
+        let firestore = MKFirestoreFullMockDebug(mockData: [mockData], expectations: [expectation])
         let sut = AsyncGetRecipesHelper(firestore: firestore)
         sut.executeQuery()
         XCTAssertEqual(sut.recipes.count, 0)

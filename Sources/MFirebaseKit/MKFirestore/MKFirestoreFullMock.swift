@@ -6,8 +6,6 @@
 //
 
 import FirebaseFirestore
-@testable import MFirebaseKit
-import XCTest
 
 public struct MKFirestoreFullMockData {
     let firestoreReference: MKFirestoreReference
@@ -18,33 +16,6 @@ public struct MKFirestoreFullMockData {
         self.data = data as [Any]
     }
 }
-
-public class MKFirestoreExpectation: XCTestExpectation {
-    public enum QueryType: String {
-        case deletion, mutation, query
-    }
-    let firestoreReference: MKFirestoreReference
-    let type: QueryType
-    
-    public init(firestoreReference: MKFirestoreReference, type: QueryType) {
-        self.firestoreReference = firestoreReference
-        self.type = type
-        super.init(description: "\(type) on \(firestoreReference)")
-    }
-}
-
-extension MKFirestoreExpectation {
-    func fulfillIfMatching(path: String, type: QueryType) {
-        if self.isMatching(path: path, type: type) {
-            self.fulfill()
-        }
-    }
-    func isMatching(path: String, type: QueryType) -> Bool {
-        return self.firestoreReference.rawPath == path
-        && self.type == type
-    }
-}
-
 
 public class MKFirestoreFullMock: MKFirestore {
     typealias Handler = ([String: [Any]])->Void
@@ -58,13 +29,7 @@ public class MKFirestoreFullMock: MKFirestore {
     
     var activeListeners: [String:Handler] = [:]
     
-    var expectations: [MKFirestoreExpectation]
-    
-    public init(
-        mockData: [MKFirestoreFullMockData] = [],
-        expectations: [MKFirestoreExpectation] = []
-    ) {
-        self.expectations = expectations
+    public init(mockData: [MKFirestoreFullMockData] = []) {
         var data: [String: [Any]] = [:]
         for entry in mockData {
             let leafCollectionId = entry.firestoreReference.leafCollectionPath
@@ -80,24 +45,22 @@ public class MKFirestoreFullMock: MKFirestore {
     
     public func executeCollectionQuery<T>(_ query: T) -> MKFirestoreCollectionQueryResponse<T> where T : MKFirestoreCollectionQuery {
         let responseData = dataMap[query.firestoreReference.rawPath] as? [T.BaseResultData]
-        expectations.forEach({ $0.fulfillIfMatching(path: query.firestoreReference.rawPath, type: .query) })
         return .init(error: nil, responseData: responseData?.applyFilters(query.filters))
     }
     
     public func executeDocumentQuery<T>(_ query: T) -> MKFirestoreDocumentQueryResponse<T> where T : MKFirestoreDocumentQuery {
         let id = query.firestoreReference.leafId ?? "non-existing-id"
         let objects = dataMap[query.documentReference.leafCollectionPath] as? [T.ResultData]
-        expectations.forEach({ $0.fulfillIfMatching(path: query.firestoreReference.rawPath, type: .query) })
         return .init(error: nil, responseData: objects?.applyFilters([.isEqualTo("id", id)]).first)
     }
     
     public func executeDeletion(_ deletion: MKFirestoreDocumentDeletion) -> MKFirestoreError? {
         let id = deletion.firestoreReference.leafId ?? "non-existing-id"
         dataMap[deletion.documentReference.leafCollectionPath]?.removeAllMatching(fieldName: "id", value: id)
-        expectations.forEach({ $0.fulfillIfMatching(path: deletion.firestoreReference.rawPath, type: .deletion) })
         return nil
     }
     
+    @discardableResult
     public func executeMutation(_ mutation: MKFirestoreDocumentMutation) -> MKFirestoreMutationResponse {
         let object = mutation.operation.object as Any
         let id = mutation.firestoreReference.leafId ?? "non-existing-id"
@@ -110,7 +73,6 @@ public class MKFirestoreFullMock: MKFirestore {
             dataMap.updateValue([object], forKey: key)
         }
         let documentId = (object as? any Identifiable)?.id
-        expectations.forEach({ $0.fulfillIfMatching(path: mutation.firestoreReference.rawPath, type: .mutation) })
         return .init(documentId: documentId.flatMap({ "\($0)" }), error: nil)
     }
     
