@@ -23,6 +23,12 @@ public protocol MKFirestoreDocumentMutation: MKFirestoreQuery {
     var operation: MKFirestoreMutationOperation { get }
 }
 
+extension MKFirestoreDocumentMutation {
+    public var executionLogMessage: String {
+        return "Executed DocumentMutation for \(self.firestoreReference)"
+    }
+}
+
 /// Response of `MKFirestoreMutation`
 ///
 /// - `documentId:` ID of the Document that was created / modified. Nil when an error occurred
@@ -32,4 +38,18 @@ public struct MKFirestoreMutationResponse {
     public let documentId: String?
     /// Optional `MKFirestoreError` providing more information if an error occurred
     public let error: MKFirestoreError?
+}
+
+extension MKFirestoreMutationResponse {
+    var responseLogMessage: String {
+        if let documentId {
+            return "DocumentMutation succeeded with documentID \(documentId)"
+        } else {
+            return "DocumentMutation \(errorLogMessage(error ?? .firestoreError(FirestoreErrorCode(FirestoreErrorCode.internal))))"
+        }
+    }
+    
+    func errorLogMessage(_ error: MKFirestoreError) -> String {
+        return "failed with error \(error.localizedDescription)"
+    }
 }

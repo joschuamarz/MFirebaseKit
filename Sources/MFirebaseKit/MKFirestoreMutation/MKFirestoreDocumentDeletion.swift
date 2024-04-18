@@ -15,4 +15,8 @@ extension MKFirestoreDocumentDeletion {
     public var firestoreReference: MKFirestoreReference {
         return documentReference
     }
+    
+    public var executionLogMessage: String {
+        return "Executed DocumentDeletion for \(self.firestoreReference)"
+    }
 }

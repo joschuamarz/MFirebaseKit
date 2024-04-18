@@ -62,6 +62,10 @@ extension MKFirestoreCollectionQuery {
     public var firestoreReference: MKFirestoreReference {
         return collectionReference
     }
+    
+    public var executionLogMessage: String {
+        return "Executed CollectionQuery for \(self.firestoreReference)"
+    }
 }
 
 public struct MKFirestoreCollectionQueryResponse<Query: MKFirestoreCollectionQuery> {
@@ -71,6 +75,20 @@ public struct MKFirestoreCollectionQueryResponse<Query: MKFirestoreCollectionQue
     init(error: MKFirestoreError?, responseData: [Query.BaseResultData]?) {
         self.responseData = responseData
         self.error = error
+    }
+}
+
+extension MKFirestoreCollectionQueryResponse {
+    var responseLogMessage: String {
+        if let responseData {
+            return "CollectionQuery succeeded"
+        } else {
+            return "CollectionQuery \(errorLogMessage(error ?? .firestoreError(FirestoreErrorCode(FirestoreErrorCode.internal))))"
+        }
+    }
+    
+    func errorLogMessage(_ error: MKFirestoreError) -> String {
+        return "failed with error \(error.localizedDescription)"
     }
 }
 

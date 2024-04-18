@@ -10,6 +10,7 @@ import FirebaseFirestoreSwift
 
 public protocol MKFirestoreQuery {
     var firestoreReference: MKFirestoreReference { get }
+    var executionLogMessage: String { get }
 }
 
 public protocol MKFirestoreDocumentQuery: MKFirestoreQuery {
@@ -24,6 +25,10 @@ extension MKFirestoreDocumentQuery {
     public var firestoreReference: MKFirestoreReference {
         return documentReference
     }
+    
+    public var executionLogMessage: String {
+        return "Executed DocumentQuery for \(self.firestoreReference)"
+    }
 }
 
 public struct MKFirestoreDocumentQueryResponse<Query: MKFirestoreDocumentQuery> {
@@ -33,5 +38,19 @@ public struct MKFirestoreDocumentQueryResponse<Query: MKFirestoreDocumentQuery> 
     init(error: MKFirestoreError?, responseData: Query.ResultData?) {
         self.responseData = responseData
         self.error = error
+    }
+}
+
+extension MKFirestoreDocumentQueryResponse {
+    var responseLogMessage: String {
+        if let responseData {
+            return "DocumentQuery succeeded"
+        } else {
+            return "DocumentQuery \(errorLogMessage(error ?? .firestoreError(FirestoreErrorCode(FirestoreErrorCode.internal))))"
+        }
+    }
+    
+    func errorLogMessage(_ error: MKFirestoreError) -> String {
+        return "failed with error \(error.localizedDescription)"
     }
 }
