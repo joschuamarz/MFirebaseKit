@@ -79,7 +79,7 @@ public struct MKFirestoreCollectionQueryResponse<Query: MKFirestoreCollectionQue
 }
 
 extension MKFirestoreCollectionQueryResponse {
-    var responseLogMessage: String {
+    public var responseLogMessage: String {
         if let responseData {
             return "CollectionQuery succeeded"
         } else {

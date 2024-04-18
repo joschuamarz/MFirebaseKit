@@ -42,7 +42,7 @@ public struct MKFirestoreDocumentQueryResponse<Query: MKFirestoreDocumentQuery> 
 }
 
 extension MKFirestoreDocumentQueryResponse {
-    var responseLogMessage: String {
+    public var responseLogMessage: String {
         if let responseData {
             return "DocumentQuery succeeded"
         } else {

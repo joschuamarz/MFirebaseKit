@@ -41,7 +41,7 @@ public struct MKFirestoreMutationResponse {
 }
 
 extension MKFirestoreMutationResponse {
-    var responseLogMessage: String {
+    public var responseLogMessage: String {
         if let documentId {
             return "DocumentMutation succeeded with documentID \(documentId)"
         } else {
