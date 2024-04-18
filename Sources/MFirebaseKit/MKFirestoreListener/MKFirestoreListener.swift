@@ -7,10 +7,17 @@
 
 import FirebaseFirestore
 
+typealias VoidHandler = () -> Void
+
 public class MockListenerRegistration: NSObject, ListenerRegistration {
-    let onRemove: ()->Void
+    let onChange: VoidHandler
+    let onRemove: VoidHandler
     
-    init(onRemove: @escaping () -> Void) {
+    init(
+        onChange: @escaping VoidHandler = { },
+        onRemove: @escaping VoidHandler = { }
+    ) {
+        self.onChange = onChange
         self.onRemove = onRemove
     }
     

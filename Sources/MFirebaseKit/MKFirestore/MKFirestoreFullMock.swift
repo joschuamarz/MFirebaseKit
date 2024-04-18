@@ -21,13 +21,13 @@ open class MKFirestoreFullMock: MKFirestore {
     public typealias Handler = ([String: [Any]])->Void
     public var dataMap: [String: [Any]] = [:] {
         didSet {
-            for listener in activeListeners {
-                listener.value(dataMap)
+            for listener in activeListeners.values {
+                listener.onChange()
             }
         }
     }
     
-    public var activeListeners: [String:Handler] = [:]
+    public var activeListeners: [String: MockListenerRegistration] = [:]
     
     public init(mockData: [MKFirestoreFullMockData] = []) {
         var data: [String: [Any]] = [:]
@@ -62,7 +62,7 @@ open class MKFirestoreFullMock: MKFirestore {
     
     @discardableResult
     open func executeMutation(_ mutation: MKFirestoreDocumentMutation) -> MKFirestoreMutationResponse {
-        var object = mutation.operation.object as Any
+        let object = mutation.operation.object as Any
         let id = mutation.firestoreReference.leafId ?? "non-existing-id"
         let key = mutation.firestoreReference.leafCollectionPath
         if let index =  dataMap[key]?.firstIndexMatching(fieldName: "id", value: id) {
@@ -78,12 +78,21 @@ open class MKFirestoreFullMock: MKFirestore {
     
     open func addCollectionListener<T>(_ listener: MKFirestoreCollectionListener<T>) -> ListenerRegistration where T : MKFirestoreCollectionQuery {
         // register listener
-        activeListeners.updateValue(listener.handleMockChanges(_:), forKey: listener.id)
-        // fill initial data
-        listener.handleMockChanges(dataMap)
+        let registration = MockListenerRegistration(
+            onChange: { [weak self] in
+                let key = listener.query.firestoreReference.leafCollectionPath
+                if let objects = self?.dataMap[key] as? [T.BaseResultData] {
+                    listener.objects = objects
+                }
+            },
+            onRemove: { [weak self] in
+                self?.activeListeners.removeValue(forKey: listener.id)
+            }
+        )
+        activeListeners.updateValue(registration, forKey: listener.id)
+        // fill initially
+        registration.onChange()
         // return registration
-        return MockListenerRegistration(onRemove: {
-            self.activeListeners.removeValue(forKey: listener.id)
-        })
+        return registration
     }
 }
