@@ -21,7 +21,7 @@ open class MKFirestoreFullMock: MKFirestore {
     public typealias Handler = ([String: [Any]])->Void
     public var dataMap: [String: [Any]] = [:] {
         didSet {
-            activeListeners.forEach { listener in
+            for listener in activeListeners {
                 listener.value(dataMap)
             }
         }
@@ -62,7 +62,7 @@ open class MKFirestoreFullMock: MKFirestore {
     
     @discardableResult
     open func executeMutation(_ mutation: MKFirestoreDocumentMutation) -> MKFirestoreMutationResponse {
-        let object = mutation.operation.object as Any
+        var object = mutation.operation.object as Any
         let id = mutation.firestoreReference.leafId ?? "non-existing-id"
         let key = mutation.firestoreReference.leafCollectionPath
         if let index =  dataMap[key]?.firstIndexMatching(fieldName: "id", value: id) {
