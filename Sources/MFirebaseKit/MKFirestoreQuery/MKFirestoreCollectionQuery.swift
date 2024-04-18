@@ -64,7 +64,7 @@ extension MKFirestoreCollectionQuery {
     }
     
     public var executionLogMessage: String {
-        return "Executed CollectionQuery for \(self.firestoreReference)"
+        return "Executed CollectionQuery for \(self.firestoreReference.rawPath)"
     }
 }
 
@@ -81,7 +81,7 @@ public struct MKFirestoreCollectionQueryResponse<Query: MKFirestoreCollectionQue
 extension MKFirestoreCollectionQueryResponse {
     public var responseLogMessage: String {
         if let responseData {
-            return "CollectionQuery succeeded"
+            return "CollectionQuery succeeded with \(responseData.count) results"
         } else {
             return "CollectionQuery \(errorLogMessage(error ?? .firestoreError(FirestoreErrorCode(FirestoreErrorCode.internal))))"
         }

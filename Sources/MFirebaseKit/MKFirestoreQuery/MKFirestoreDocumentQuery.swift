@@ -27,7 +27,7 @@ extension MKFirestoreDocumentQuery {
     }
     
     public var executionLogMessage: String {
-        return "Executed DocumentQuery for \(self.firestoreReference)"
+        return "Executed DocumentQuery for \(self.firestoreReference.rawPath)"
     }
 }
 

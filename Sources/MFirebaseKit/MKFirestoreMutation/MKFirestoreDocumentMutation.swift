@@ -25,7 +25,7 @@ public protocol MKFirestoreDocumentMutation: MKFirestoreQuery {
 
 extension MKFirestoreDocumentMutation {
     public var executionLogMessage: String {
-        return "Executed DocumentMutation for \(self.firestoreReference)"
+        return "Executed DocumentMutation for \(self.firestoreReference.rawPath)"
     }
 }
 
