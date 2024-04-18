@@ -8,8 +8,8 @@
 import FirebaseFirestore
 
 public struct MKFirestoreFullMockData {
-    let firestoreReference: MKFirestoreReference
-    let data: [Any]
+    public let firestoreReference: MKFirestoreReference
+    public let data: [Any]
     
     public init(firestoreReference: MKFirestoreReference, data: [any Codable & Identifiable]) {
         self.firestoreReference = firestoreReference
