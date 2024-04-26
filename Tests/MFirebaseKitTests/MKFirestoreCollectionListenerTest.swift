@@ -75,12 +75,7 @@ final class MKFirestoreCollectionListenerTest: XCTestCase {
     func testListener_OnAdded_AdditionalHandler() {
         let listener = MKFirestoreCollectionListener(
             query: query,
-            firestore: MKFirestoreMock(),
-            onAddedAdditionalHandler:  { object in
-                var newObject = object
-                newObject.name = "Test Modified"
-                return newObject
-            })
+            firestore: MKFirestoreMock())
         listener.startListening()
         // Add first item
         let newItem = TestResultData(id: "10", name: "Test 10")
@@ -94,14 +89,7 @@ final class MKFirestoreCollectionListenerTest: XCTestCase {
     func testListener_OnAdded_AdditionalHandler_excludesItems() {
         let listener = MKFirestoreCollectionListener(
             query: query,
-            firestore: MKFirestoreMock(),
-            onAddedAdditionalHandler:  { object in
-                if object.id == "11" {
-                    return nil
-                }
-                
-                return object
-            })
+            firestore: MKFirestoreMock())
         listener.startListening()
         // Add first item
         let newItem = TestResultData(id: "10", name: "Test 10")
@@ -154,12 +142,7 @@ final class MKFirestoreCollectionListenerTest: XCTestCase {
     func testListener_OnModified_AdditionalHandler() {
         let listener = MKFirestoreCollectionListener(
             query: query,
-            firestore: MKFirestoreMock(),
-            onModifiedAdditionalHandler:  { object in
-                var newObject = object
-                newObject.name = "Test 10 Modified Again"
-                return newObject
-            })
+            firestore: MKFirestoreMock())
         listener.startListening()
         // Add first item
         let newItem = TestResultData(id: "10", name: "Test 10")
@@ -219,35 +202,7 @@ final class MKFirestoreCollectionListenerTest: XCTestCase {
         
         let listener = MKFirestoreCollectionListener(
             query: query,
-            firestore: MKFirestoreMock(listenerMockMode: .auto),
-            onAddedAdditionalHandler: { object in
-                switch addActionCounter {
-                case 0:
-                    firstAdd.fulfill()
-                case 1:
-                    secondAdd.fulfill()
-                case 2:
-                    firstReAdd.fulfill()
-                case 3:
-                    secondReAdd.fulfill()
-                default:
-                    XCTFail("More add actions than expected")
-                }
-                addActionCounter += 1
-                return object
-            },
-            onRemovedAdditionalHandler: { object in
-                switch removeActionCounter {
-                case 0:
-                    firstRemoval.fulfill()
-                case 1:
-                    secondRemoval.fulfill()
-                default:
-                    XCTFail("More remove actions than expected")
-                }
-                removeActionCounter += 1
-                return object
-            }
+            firestore: MKFirestoreMock(listenerMockMode: .auto)
         )
         listener.startListening()
         
