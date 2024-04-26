@@ -146,15 +146,6 @@ extension Firestore: MKFirestore {
         }
     }
     
-    public func addCollectionListener<T: MKFirestoreListener>(_ listener: T) {
-        if let query = listener.query as? any MKFirestoreCollectionQuery {
-            let collectionReference = self.collection(query.firestoreReference.rawPath)
-            _ = collectionReference.addSnapshotListener { snapshot, error in
-                listener.handle(snapshot?.documentChanges, error: error)
-            }
-        }
-    }
-    
     // MARK: - Handle Error
     private func handleError<T: MKFirestoreQuery>(_ error: Error, for query: T) -> MKFirestoreError {
         print("$ MKFirestore: Finished collection Query for path \(query.firestoreReference.rawPath) with Error")

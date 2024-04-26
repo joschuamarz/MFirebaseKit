@@ -19,13 +19,7 @@ public struct MKFirestoreFullMockData {
 
 open class MKFirestoreFullMock: MKFirestore {
     public typealias Handler = ([String: [Any]])->Void
-    public var dataMap: [String: [Any]] = [:] {
-        didSet {
-            for listener in activeListeners.values {
-                listener.onChange()
-            }
-        }
-    }
+    public var dataMap: [String: [Any]] = [:]
     
     public var activeListeners: [String: MockListenerRegistration] = [:]
     
