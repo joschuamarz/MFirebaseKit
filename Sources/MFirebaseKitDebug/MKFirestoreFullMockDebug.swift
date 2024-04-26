@@ -19,6 +19,10 @@ extension Array {
     }
 }
 
+public protocol MKFirestoreTestableQuery {
+    static var testableFirestoreReference: MKFirestoreReference { get }
+}
+
 public class MKFirestoreExpectation: XCTestExpectation {
     public enum QueryType: String {
         case deletion, mutation, query, listener
@@ -46,8 +50,9 @@ extension MKFirestoreExpectation {
 }
 
 public class MKFirestoreFullMockDebug: MKFirestoreFullMock {
-    var expectations: [MKFirestoreExpectation]
     let id = UUID().uuidString
+    
+    public var expectations: [MKFirestoreExpectation]
     
     public init(
         mockData: [MKFirestoreFullMockData] = [],
