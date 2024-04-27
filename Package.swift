@@ -40,14 +40,10 @@ let package = Package(
             name: "MFirebaseKitDebug",
             dependencies: [
                 "MFirebaseKit",
-                .product(name: "FirebaseAuth", package: "firebase-ios-sdk"),
-                .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
-                .product(name: "FirebaseStorage", package: "firebase-ios-sdk"),
-                .product(name: "FirebaseFirestoreSwift", package: "firebase-ios-sdk"),
             ]
         ),
         .testTarget(
             name: "MFirebaseKitTests",
-            dependencies: ["MFirebaseKit"]),
+            dependencies: ["MFirebaseKit", "MFirebaseKitDebug"]),
     ]
 )
