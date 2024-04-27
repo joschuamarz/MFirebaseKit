@@ -7,7 +7,7 @@
 
 import Foundation
 import XCTest
-@testable import MFirebaseKit
+import MFirebaseKit
 
 extension Array {
     mutating func removeFirst(where shouldBeRemoved: (Element) throws -> Bool) rethrows -> Element? {
