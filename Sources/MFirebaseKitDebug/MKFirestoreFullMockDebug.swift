@@ -7,7 +7,8 @@
 
 import Foundation
 import XCTest
-import MFirebaseKit
+import FirebaseFirestore
+@testable import MFirebaseKit
 
 extension Array {
     mutating func removeFirst(where shouldBeRemoved: (Element) throws -> Bool) rethrows -> Element? {
@@ -105,31 +106,31 @@ public class MKFirestoreFullMockDebug: MKFirestoreFullMock {
         return response
     }
     
-//    public override func addCollectionListener<T>(_ listener: MKFirestoreCollectionListener<T>) -> ListenerRegistration where T : MKFirestoreCollectionQuery {
-//        // register listener
-//        print("$ Listener \(listener.id) will register")
-//        let registration = MockListenerRegistration(
-//            onChange: { [weak self] in
-//                let path = listener.query.firestoreReference.leafCollectionPath
-//                if let objects = self?.dataMap[path] as? [T.BaseResultData] {
-//                    listener.objects = objects
-//                    if let expectation = self?.expectations.removeFirst(where: { $0.isMatching(path: path, type: .listener) }) {
-//                        expectation.fulfill()
-//                        print("$ Listener \(listener.id): did fulfill for path: \(path) of \(self?.id ?? "unknown")")
-//                    }
-//                }
-//                print("$ Listener \(listener.id) did change with \(listener.objects.count) objects")
-//            },
-//            onRemove: { [weak self] in
-//                self?.activeListeners.removeValue(forKey: listener.id)
-//            }
-//        )
-//        activeListeners.updateValue(registration, forKey: listener.id)
-//        // fill initially
-//        registration.onChange()
-//        // return registration
-//        return registration
-//    }
+    public override func addCollectionListener<T>(_ listener: MKFirestoreCollectionListener<T>) -> ListenerRegistration where T : MKFirestoreCollectionQuery {
+        // register listener
+        print("$ Listener \(listener.id) will register")
+        let registration = MockListenerRegistration(
+            onChange: { [weak self] in
+                let path = listener.query.firestoreReference.leafCollectionPath
+                if let objects = self?.dataMap[path] as? [T.BaseResultData] {
+                    listener.objects = objects
+                    if let expectation = self?.expectations.removeFirst(where: { $0.isMatching(path: path, type: .listener) }) {
+                        expectation.fulfill()
+                        print("$ Listener \(listener.id): did fulfill for path: \(path) of \(self?.id ?? "unknown")")
+                    }
+                }
+                print("$ Listener \(listener.id) did change with \(listener.objects.count) objects")
+            },
+            onRemove: { [weak self] in
+                self?.activeListeners.removeValue(forKey: listener.id)
+            }
+        )
+        activeListeners.updateValue(registration, forKey: listener.id)
+        // fill initially
+        registration.onChange()
+        // return registration
+        return registration
+    }
     
     // MARK: - Logging
     private func log(_ query: MKFirestoreQuery) {
