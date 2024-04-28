@@ -74,11 +74,11 @@ extension Firestore: MKFirestore {
     
     public func executeDocumentQuery<T: MKFirestoreDocumentQuery>(_ query: T) async -> MKFirestoreDocumentQueryResponse<T> {
         let documentReference = self.document(query.firestoreReference.rawPath)
-        print("$ MKFirestore: Executing document Query with path \(query.firestoreReference.rawPath)")
+//        print("$ MKFirestore: Executing document Query with path \(query.firestoreReference.rawPath)")
         do {
             let document = try await documentReference.getDocument()
             let result = try document.data(as: T.ResultData.self)
-            print("$ MKFirestore: Successfully finished document Query for path \(query.firestoreReference.rawPath)")
+//            print("$ MKFirestore: Successfully finished document Query for path \(query.firestoreReference.rawPath)")
             return MKFirestoreDocumentQueryResponse(error: nil, responseData: result)
         } catch (let error) {
             return MKFirestoreDocumentQueryResponse<T>(error: handleError(error, for: query), responseData: nil)
@@ -106,13 +106,13 @@ extension Firestore: MKFirestore {
         if let limit = query.limit {
             firestoreQuery = firestoreQuery.limit(to: limit)
         }
-        print("$ MKFirestore: Executing collection Query with path \(query.firestoreReference.rawPath)")
+//        print("$ MKFirestore: Executing collection Query with path \(query.firestoreReference.rawPath)")
         do {
             let documents: [QueryDocumentSnapshot] = try await firestoreQuery.getDocuments().documents
             
             let results = try documents.map({ try $0.data(as: T.BaseResultData.self) })
-            print("$ MKFirestore: Successfully finished document Query for path \(query.firestoreReference.rawPath)")
-            print("$ MKFirestore: Fetched \(documents.count) objects in the new way")
+//            print("$ MKFirestore: Successfully finished document Query for path \(query.firestoreReference.rawPath)")
+//            print("$ MKFirestore: Fetched \(documents.count) objects in the new way")
             return MKFirestoreCollectionQueryResponse(error: nil, responseData: results)
         } catch (let error) {
             return MKFirestoreCollectionQueryResponse<T>(error: handleError(error, for: query), responseData: nil)
