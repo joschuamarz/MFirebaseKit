@@ -39,7 +39,7 @@ let package = Package(
         ),
         .target(
             name: "MFirebaseKitDebug",
-            dependencies: ["MFirebaseKit"]
+            dependencies: []
         ),
         .testTarget(
             name: "MFirebaseKitTests",
