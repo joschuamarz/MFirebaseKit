@@ -11,7 +11,7 @@ import Foundation
 //@testable import MFirebaseKit
 
 public struct Printer {
-    public func print(_ message: String) {
+    public static func log(_ message: String) {
         print(message)
     }
 }
