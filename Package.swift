@@ -15,10 +15,6 @@ let package = Package(
             name: "MFirebaseKit",
             targets: ["MFirebaseKit"]
         ),
-        .library(
-            name: "MFirebaseKitDebug",
-            targets: ["MFirebaseKitDebug"]
-        ),
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -35,11 +31,6 @@ let package = Package(
                 .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
                 .product(name: "FirebaseStorage", package: "firebase-ios-sdk"),
                 .product(name: "FirebaseFirestoreSwift", package: "firebase-ios-sdk"),
-            ]
-        ),
-        .target(
-            name: "MFirebaseKitDebug",
-            dependencies: [
             ]
         ),
         .testTarget(
