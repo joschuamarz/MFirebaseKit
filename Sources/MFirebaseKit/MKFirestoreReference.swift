@@ -20,7 +20,7 @@ public class MKFirestoreReference {
         return rawPath.components(separatedBy: "/").last
     }
     
-    var leafCollectionPath: String {
+    public var leafCollectionPath: String {
         ""
     }
 }

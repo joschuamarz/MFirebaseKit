@@ -7,13 +7,13 @@
 
 import FirebaseFirestore
 
-typealias VoidHandler = () -> Void
+public typealias VoidHandler = () -> Void
 
 public class MockListenerRegistration: NSObject, ListenerRegistration {
-    let onChange: VoidHandler
-    let onRemove: VoidHandler
+    public let onChange: VoidHandler
+    public let onRemove: VoidHandler
     
-    init(
+    public init(
         onChange: @escaping VoidHandler = { },
         onRemove: @escaping VoidHandler = { }
     ) {
@@ -41,7 +41,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
     @Published public var didFinishInitialLoad: Bool = false
     @Published public var objects: [Query.BaseResultData] = []
     
-    var query: Query
+    public var query: Query
     private let firestore: MKFirestore
     
     // Handler

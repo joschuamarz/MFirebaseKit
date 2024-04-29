@@ -7,7 +7,7 @@
 
 import Foundation
 import XCTest
-@testable import MFirebaseKit
+import MFirebaseKit
 import FirebaseFirestore
 
 extension Array {
