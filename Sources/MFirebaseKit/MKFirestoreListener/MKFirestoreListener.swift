@@ -105,6 +105,29 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
         }
     }
     
+    actor ResultActor {
+        var results: [Query.BaseResultData]
+        
+        init(results: [Query.BaseResultData]) {
+            self.results = results
+        }
+        
+        func add(_ result: Query.BaseResultData) {
+            results.append(result)
+        }
+        
+        func replace(with result: Query.BaseResultData) -> Bool {
+            if let index = results.firstIndex(where: { $0.id == result.id }) {
+                results[index] = result
+                return true
+            }
+            return false
+        }
+        
+        func removeAll(by id: Query.BaseResultData.ID) {
+            results.removeAll(where: { $0.id == id })
+        }
+    }
     // MARK: - Universal change handler
     func handle(_ changes: [DocumentChange]?, error: Error?, for query: Query) {
         guard isListening && query.isEqual(to: self.query) else { return }
@@ -113,35 +136,43 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
             return
         }
         Task {
-            var results = self.objects
+            let dispatchGroup = DispatchGroup()
+            let resultsActor = ResultActor(results: self.objects)
             for change in changes {
-                do {
-                    let object = try change.document.data(as: Query.BaseResultData.self)
-                    switch change.type {
-                    case .added:
-                        if let newObject = await processObjectIfNeeded(object) {
-                            results.append(newObject)
-                        }
-                    case .modified:
-                        if let newObject = await processObjectIfNeeded(object) {
-                            if let index = results.firstIndex(where: { $0.id == newObject.id }) {
-                                results[index] = newObject
-                            } else {
-                                results.append(newObject)
+                dispatchGroup.enter()
+                Task(priority: .background) {
+                    do {
+                        let object = try change.document.data(as: Query.BaseResultData.self)
+                        switch change.type {
+                        case .added:
+                            if let newObject = await processObjectIfNeeded(object) {
+                                await resultsActor.add(newObject)
                             }
+                        case .modified:
+                            if let newObject = await processObjectIfNeeded(object) {
+                                if await !resultsActor.replace(with: newObject) {
+                                    await resultsActor.add(newObject)
+                                }
+                            }
+                        case .removed:
+                            await resultsActor.removeAll(by: object.id)
                         }
-                    case .removed:
-                        results.removeAll(where: { $0.id == object.id })
+                    } catch {
+                        handle(error)
                     }
-                } catch {
-                    handle(error)
+                    dispatchGroup.leave()
                 }
             }
-            let finalResults = results
-            print("$ MKFirestoreListener: processed \(changes.count) changes")
-            DispatchQueue.main.async {
-                self.objects = finalResults
-                self.publishInitialLoading()
+            
+            dispatchGroup.notify(queue: .global()) {
+                Task {
+                    let finalResults = await resultsActor.results
+                    print("$ MKFirestoreListener: processed \(changes.count) changes")
+                    DispatchQueue.main.async {
+                        self.objects = finalResults
+                        self.publishInitialLoading()
+                    }
+                }
             }
         }
     }
