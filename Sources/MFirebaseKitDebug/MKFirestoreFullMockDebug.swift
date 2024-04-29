@@ -10,8 +10,8 @@ import Foundation
 //import FirebaseFirestore
 //@testable import MFirebaseKit
 
-struct Logger {
-    func log(_ message: String) {
+public struct Printer {
+    public func print(_ message: String) {
         print(message)
     }
 }
