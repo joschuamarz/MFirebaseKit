@@ -30,7 +30,7 @@ public class MKFirestoreCollectionReference: MKFirestoreReference {
         return MKFirestoreDocumentReference(rawPath: rawPath + "/" + documentId)
     }
     
-    override var leafCollectionPath: String {
+    public override var leafCollectionPath: String {
         return rawPath
     }
 }
@@ -40,7 +40,7 @@ public class MKFirestoreDocumentReference: MKFirestoreReference {
         return MKFirestoreCollectionReference(rawPath: rawPath + "/" + collectionName)
     }
     
-    override var leafCollectionPath: String {
+    public override var leafCollectionPath: String {
         var path = rawPath.components(separatedBy: "/")
         guard path.count >= 2 else { return "" }
         // remove document
