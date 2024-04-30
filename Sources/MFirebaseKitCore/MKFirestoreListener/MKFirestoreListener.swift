@@ -14,7 +14,7 @@ public enum MKDocumentChangeType {
     case added, modified, removed
 }
 public protocol MKDocumentChange {
-    var type: MKDocumentChangeType { get }
+    var changeType: MKDocumentChangeType { get }
     func object<T: Decodable>(as type: T.Type) throws -> T
 }
 
@@ -152,7 +152,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
                 Task(priority: .background) {
                     do {
                         let object = try change.object(as: Query.BaseResultData.self)
-                        switch change.type {
+                        switch change.changeType {
                         case .added:
                             if let newObject = await processObjectIfNeeded(object) {
                                 await resultsActor.add(newObject)

@@ -12,7 +12,7 @@ import FirebaseFirestoreSwift
 
 
 extension DocumentChange: MKDocumentChange {
-    public var type: MFirebaseKitCore.MKDocumentChangeType {
+    public var changeType: MFirebaseKitCore.MKDocumentChangeType {
         switch self.type {
         case .added: return .added
         case .modified: return .modified
