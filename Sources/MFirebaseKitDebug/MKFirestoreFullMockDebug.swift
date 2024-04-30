@@ -7,7 +7,7 @@
 
 import Foundation
 import XCTest
-//import MFirebaseKit
+import MFirebaseKit
 //import FirebaseFirestore
 
 public struct Printer {
@@ -36,19 +36,19 @@ public class MyExpectation: XCTestExpectation {
 //    static var testableFirestoreReference: MKFirestoreReference { get }
 //}
 //
-//public class MKFirestoreExpectation: XCTestExpectation {
-//    public enum QueryType: String {
-//        case deletion, mutation, query, listener
-//    }
-//    let firestoreReference: MKFirestoreReference
-//    let type: QueryType
-//    
-//    public init(firestoreReference: MKFirestoreReference, type: QueryType) {
-//        self.firestoreReference = firestoreReference
-//        self.type = type
-//        super.init(description: "\(type) on \(firestoreReference.rawPath)")
-//    }
-//}
+public class MKFirestoreExpectation2: XCTestExpectation {
+    public enum QueryType: String {
+        case deletion, mutation, query, listener
+    }
+    let firestoreReference: MKFirestoreReference
+    let type: QueryType
+    
+    public init(firestoreReference: MKFirestoreReference, type: QueryType) {
+        self.firestoreReference = firestoreReference
+        self.type = type
+        super.init(description: "\(type) on \(firestoreReference.rawPath)")
+    }
+}
 //
 //extension MKFirestoreExpectation {
 //    func fulfillIfMatching(path: String, type: QueryType) {
