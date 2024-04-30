@@ -9,6 +9,7 @@ import Foundation
 import XCTest
 import MFirebaseKit
 import MFirebaseKitDebug
+import MFirebaseKitCore
 
 final class MFirebaseKitDebugTest: XCTestCase {
     
@@ -60,9 +61,9 @@ extension MFirebaseKitDebugTest {
         
         var collectionReference: MKFirestoreCollectionReference = .collection("Main").document("Test").collection("Recipes")
         
-        var orderDescriptor: MFirebaseKit.OrderDescriptor? = nil
+        var orderDescriptor: OrderDescriptor? = nil
         var limit: Int? = nil
-        var filters: [MFirebaseKit.MKFirestoreQueryFilter] = []
+        var filters: [MKFirestoreQueryFilter] = []
         var mockResultData: [Recipe] = []
     }
 }

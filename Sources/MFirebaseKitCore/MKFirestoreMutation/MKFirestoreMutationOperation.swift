@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import FirebaseFirestore
 
 /// Mutating operation that can be executed both on collections and documents.
 ///
@@ -14,12 +13,12 @@ import FirebaseFirestore
 /// > Executed on a collection reference, this will create a new document with an auto-generated `DocumentID`.
 public struct MKFirestoreMutationOperation {
     /// Data that should be uploaded
-    var data: [String: Any]?
+    public var data: [String: Any]?
     /// Encodable object that should be uploaded
-    var object: Encodable?
+    public var object: Encodable?
     /// Defines if the other fields of the document (if existing) should stay in place
     /// or if the document should be overwritten with **only** the provided fields.
-    var merge: Bool
+    public var merge: Bool
     
     
     // MARK: - Add Document
@@ -116,9 +115,9 @@ public struct MKFirestoreFieldUpdate {
     /// > and negative values to decrement.
     ///
     /// > Info: If no field exists for the given `fieldName`, a new field will be created.
-    public static func increment(fieldName: String, by x: Double) -> MKFirestoreFieldUpdate {
-        return MKFirestoreFieldUpdate(fieldName: fieldName, newValue: FieldValue.increment(x))
-    }
+//    public static func increment(fieldName: String, by x: Double) -> MKFirestoreFieldUpdate {
+//        return MKFirestoreFieldUpdate(fieldName: fieldName, newValue: MKFieldValue.increment(x))
+//    }
     
     /// Set a new value for a given field
     ///
@@ -130,3 +129,10 @@ public struct MKFirestoreFieldUpdate {
         return MKFirestoreFieldUpdate(fieldName: fieldName, newValue: value)
     }
 }
+
+//public protocol
+//public class MKFieldValue {
+//    public class func increment(_ value: Double) -> Any {
+//        return Double.random(in: 1...99) + value
+//    }
+//}

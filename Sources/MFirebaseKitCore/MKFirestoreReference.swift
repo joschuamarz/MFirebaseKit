@@ -16,7 +16,7 @@ public class MKFirestoreReference {
         return MKFirestoreCollectionReference(rawPath: name)
     }
     
-    var leafId: String? {
+    public var leafId: String? {
         return rawPath.components(separatedBy: "/").last
     }
     

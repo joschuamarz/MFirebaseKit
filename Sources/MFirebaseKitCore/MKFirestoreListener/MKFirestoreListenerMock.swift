@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import FirebaseFirestore
 
 public class MKFirestoreListenerMock<BaseResultType: Codable & Identifiable>: MKFirestore {
     private var objects: [BaseResultType] = [] {
@@ -25,7 +24,7 @@ public class MKFirestoreListenerMock<BaseResultType: Codable & Identifiable>: MK
             let results = objects.applyFilters(query.filters) as? [T.BaseResultData]
             return .init(error: nil, responseData: results)
         }
-        return .init(error: .firestoreError(FirestoreErrorCode(.internal)), responseData: nil)
+        return .init(error: .internalError("MKFirestoreListenerMock"), responseData: nil)
     }
     
     public func executeDocumentQuery<T>(_ query: T) -> MKFirestoreDocumentQueryResponse<T> where T : MKFirestoreDocumentQuery {
@@ -34,7 +33,7 @@ public class MKFirestoreListenerMock<BaseResultType: Codable & Identifiable>: MK
                 return .init(error: nil, responseData: result)
             }
         }
-        return .init(error: .firestoreError(FirestoreErrorCode(.internal)), responseData: nil)
+        return .init(error: .internalError("MKFirestoreListenerMock"), responseData: nil)
     }
     
     public func executeDeletion(_ deletion: MKFirestoreDocumentDeletion) -> MKFirestoreError? {
@@ -45,12 +44,12 @@ public class MKFirestoreListenerMock<BaseResultType: Codable & Identifiable>: MK
                 return nil
             }
         }
-        return .firestoreError(FirestoreErrorCode(.internal))
+        return .internalError("MKFirestoreListenerMock")
     }
     
     public func executeMutation(_ mutation: MKFirestoreDocumentMutation) -> MKFirestoreMutationResponse {
         guard let object = mutation.operation.object as? BaseResultType else {
-            return .init(documentId: nil, error: .firestoreError(FirestoreErrorCode(.internal)))
+            return .init(documentId: nil, error: .internalError("MKFirestoreListenerMock"))
         }
         if let id = mutation.firestoreReference.leafId {
             if let result = objects.applyFilters([.isEqualTo("id", id)]).first,
@@ -61,10 +60,10 @@ public class MKFirestoreListenerMock<BaseResultType: Codable & Identifiable>: MK
                 objects.append(object)
             }
         }
-        return .init(documentId: nil, error: .firestoreError(FirestoreErrorCode(.internal)))
+        return .init(documentId: nil, error: .internalError("MKFirestoreListenerMock"))
     }
     
-    public func addCollectionListener<T>(_ listener: MKFirestoreCollectionListener<T>) -> ListenerRegistration where T : MKFirestoreCollectionQuery {
+    public func addCollectionListener<T>(_ listener: MKFirestoreCollectionListener<T>) -> MKListenerRegistration where T : MKFirestoreCollectionQuery {
         self.changeHandler = { objects in
             if let objects = objects as? [T.BaseResultData] {
                 listener.objects = objects

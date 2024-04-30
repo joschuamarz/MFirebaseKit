@@ -12,8 +12,12 @@ let package = Package(
     products: [
         // Products define the executables and libraries a package produces, and make them visible to other packages.
         .library(
-            name: "MFirebaseKit",
-            targets: ["MFirebaseKit"]
+            name: "MFirebaseKitCore",
+            targets: ["MFirebaseKitCore"]
+        ),
+        .library(
+            name: "MFirebaseKitFirestore",
+            targets: ["MFirebaseKitFirestore"]
         ),
         .library(
             name: "MFirebaseKitDebug",
@@ -29,8 +33,13 @@ let package = Package(
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
         // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .target(
-            name: "MFirebaseKit",
+            name: "MFirebaseKitCore",
+            dependencies: []
+        ),
+        .target(
+            name: "MFirebaseKitFirestore",
             dependencies: [
+                "MFirebaseKitCore",
                 .product(name: "FirebaseAuth", package: "firebase-ios-sdk"),
                 .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
                 .product(name: "FirebaseStorage", package: "firebase-ios-sdk"),
@@ -39,11 +48,11 @@ let package = Package(
         ),
         .target(
             name: "MFirebaseKitDebug",
-            dependencies: ["MFirebaseKit"]
+            dependencies: ["MFirebaseKitCore"]
         ),
         .testTarget(
             name: "MFirebaseKitTests",
-            dependencies: ["MFirebaseKit"]
+            dependencies: ["MFirebaseKitFirestore"]
         ),
     ]
 )

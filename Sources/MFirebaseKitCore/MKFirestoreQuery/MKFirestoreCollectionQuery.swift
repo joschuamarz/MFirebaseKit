@@ -5,7 +5,7 @@
 //  Created by Joschua Marz on 27.09.23.
 //
 
-import FirebaseFirestore
+import Foundation
 
 public protocol MKFirestoreCollectionQuery: MKFirestoreQuery {
     /// Use the base type of the array.
@@ -41,15 +41,15 @@ extension MKFirestoreCollectionQuery {
 
 public struct OrderDescriptor {
     /// The name of the field that should be used for ordering the data
-    var orderByFieldName: String
+    public var orderByFieldName: String
     /// Boolean value if the data should be ordered descending
-    var orderDescending: Bool
+    public var orderDescending: Bool
     /// Define the value after which the query should start
     ///
     ///  - Warning: *IMPORTANT!*
     /// The value must be for the same field as the sorting (`oderByFieldName`)
     /// e.g. Sort by `count` - start after `20`
-    var startAfterFieldValue: Any?
+    public var startAfterFieldValue: Any?
     
     public init(orderByFieldName: String, orderDescending: Bool, startAfterFieldValue: Any? = nil) {
         self.orderByFieldName = orderByFieldName
@@ -72,7 +72,7 @@ public struct MKFirestoreCollectionQueryResponse<Query: MKFirestoreCollectionQue
     public let error: MKFirestoreError?
     public let responseData: [Query.BaseResultData]?
     
-    init(error: MKFirestoreError?, responseData: [Query.BaseResultData]?) {
+    public init(error: MKFirestoreError?, responseData: [Query.BaseResultData]?) {
         self.responseData = responseData
         self.error = error
     }
@@ -83,7 +83,7 @@ extension MKFirestoreCollectionQueryResponse {
         if let responseData {
             return "CollectionQuery succeeded with \(responseData.count) results"
         } else {
-            return "CollectionQuery \(errorLogMessage(error ?? .firestoreError(FirestoreErrorCode(FirestoreErrorCode.internal))))"
+            return "CollectionQuery \(errorLogMessage(error ?? .internalError("CollectionQuery")))"
         }
     }
     
@@ -151,32 +151,3 @@ public enum MKFirestoreQueryFilter {
     }
 }
 
-extension Query {
-    func applyFilter(_ filter: MKFirestoreQueryFilter) -> Query {
-        switch filter {
-        case .valueIn(let fieldName, let array):
-            return self.whereField(fieldName, in: array)
-        case .valueNotIn(let fieldName, let array):
-            return self.whereField(fieldName, notIn: array)
-        case .stringStartsWith(let fieldName, let prefix):
-            return self.whereField(fieldName, isGreaterThanOrEqualTo: prefix)
-                .whereField(fieldName, isLessThanOrEqualTo: prefix + "z")
-        case .arrayContains(let fieldName, let value):
-            return self.whereField(fieldName, arrayContains: value)
-        case .isEqualTo(let fieldName, let value):
-            return self.whereField(fieldName, isEqualTo: value)
-        case .isNotEqualTo(let fieldName, let value):
-            return self.whereField(fieldName, isNotEqualTo: value)
-        case .isLessThan(let fieldName, let value):
-            return self.whereField(fieldName, isLessThan: value)
-        case .isLessThanOrEqualTo(let fieldName, let value):
-            return self.whereField(fieldName, isLessThanOrEqualTo: value)
-        case .isGreaterThan(let fieldName, let value):
-            return self.whereField(fieldName, isGreaterThan: value)
-        case .isGreaterThanOrEqualTo(let fieldName, let value):
-            return self.whereField(fieldName, isGreaterThanOrEqualTo: value)
-        case .arrayContaninsAny(let fieldName, let array):
-            return self.whereField(fieldName, arrayContains: array)
-        }
-    }
-}

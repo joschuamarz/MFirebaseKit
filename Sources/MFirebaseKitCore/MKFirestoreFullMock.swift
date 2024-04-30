@@ -5,7 +5,7 @@
 //  Created by Joschua Marz on 12.04.24.
 //
 
-import FirebaseFirestore
+import Foundation
 
 public struct MKFirestoreFullMockData {
     public let firestoreReference: MKFirestoreReference
@@ -76,7 +76,7 @@ open class MKFirestoreFullMock: MKFirestore {
         return .init(documentId: documentId.flatMap({ "\($0)" }), error: nil)
     }
     
-    open func addCollectionListener<T>(_ listener: MKFirestoreCollectionListener<T>) -> ListenerRegistration where T : MKFirestoreCollectionQuery {
+    open func addCollectionListener<T>(_ listener: MKFirestoreCollectionListener<T>) -> MKListenerRegistration where T : MKFirestoreCollectionQuery {
         // register listener
         let registration = MockListenerRegistration(
             onChange: { [weak self] in

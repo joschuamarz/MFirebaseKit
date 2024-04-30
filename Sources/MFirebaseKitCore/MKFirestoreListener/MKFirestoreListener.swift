@@ -5,11 +5,20 @@
 //  Created by Joschua Marz on 06.12.23.
 //
 
-import FirebaseFirestore
+import Foundation
+import Combine
 
 public typealias VoidHandler = () -> Void
 
-public class MockListenerRegistration: NSObject, ListenerRegistration {
+public enum MKDocumentChangeType {
+    case added, modified, removed
+}
+public protocol MKDocumentChange {
+    var type: MKDocumentChangeType { get }
+    func object<T: Decodable>(as type: T.Type) throws -> T
+}
+
+public class MockListenerRegistration: NSObject, MKListenerRegistration {
     public let onChange: VoidHandler
     public let onRemove: VoidHandler
     
@@ -33,7 +42,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
 
     // Listener Registration
     public let id: String = UUID().uuidString
-    private var listenerRegistration: ListenerRegistration?
+    private var listenerRegistration: MKListenerRegistration?
     public var isListening: Bool {
         return listenerRegistration != nil
     }
@@ -129,7 +138,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
         }
     }
     // MARK: - Universal change handler
-    func handle(_ changes: [DocumentChange]?, error: Error?, for query: Query) {
+    func handle(_ changes: [MKDocumentChange]?, error: Error?, for query: Query) {
         guard isListening && query.isEqual(to: self.query) else { return }
         guard let changes else {
             if let error { handle(error) }
@@ -142,7 +151,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
                 dispatchGroup.enter()
                 Task(priority: .background) {
                     do {
-                        let object = try change.document.data(as: Query.BaseResultData.self)
+                        let object = try change.object(as: Query.BaseResultData.self)
                         switch change.type {
                         case .added:
                             if let newObject = await processObjectIfNeeded(object) {

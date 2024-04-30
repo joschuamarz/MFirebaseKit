@@ -7,6 +7,7 @@
 
 import FirebaseFirestore
 import FirebaseFirestoreSwift
+import MFirebaseKitCore
 
 @available(macOS 10.15, *)
 extension Firestore: MKFirestore {
@@ -49,7 +50,7 @@ extension Firestore: MKFirestore {
                 let documentId = try self.collection(mutation.firestoreReference.rawPath).addDocument(from: object).documentID
                 return MKFirestoreMutationResponse(documentId: documentId, error: nil)
             }
-            return MKFirestoreMutationResponse(documentId: nil, error: .firestoreError(FirestoreErrorCode(FirestoreErrorCode.invalidArgument)))
+            return MKFirestoreMutationResponse(documentId: nil, error: .firestoreError(FirestoreErrorCode(FirestoreErrorCode.invalidArgument).description))
         } catch (let error) {
             return MKFirestoreMutationResponse(documentId: nil, error: handleError(error, for: mutation))
         }
@@ -64,7 +65,7 @@ extension Firestore: MKFirestore {
                 try self.document(mutation.firestoreReference.rawPath).setData(from: object, merge: mutation.operation.merge)
                 return MKFirestoreMutationResponse(documentId: mutation.firestoreReference.leafId, error: nil)
             }
-            return MKFirestoreMutationResponse(documentId: nil, error: .firestoreError(FirestoreErrorCode(FirestoreErrorCode.invalidArgument)))
+            return MKFirestoreMutationResponse(documentId: nil, error: .firestoreError(FirestoreErrorCode(FirestoreErrorCode.invalidArgument).description))
         } catch (let error) {
             return MKFirestoreMutationResponse(documentId: nil, error: handleError(error, for: mutation))
         }
@@ -119,7 +120,7 @@ extension Firestore: MKFirestore {
         }
     }
     
-    public func addCollectionListener<T: MKFirestoreCollectionQuery>(_ listener: MKFirestoreCollectionListener<T>) -> ListenerRegistration {
+    public func addCollectionListener<T: MKFirestoreCollectionQuery>(_ listener: MKFirestoreCollectionListener<T>) -> MKListenerRegistration {
         let query = listener.query
         let collectionReference = self.collection(query.firestoreReference.rawPath)
         var firestoreQuery: Query = collectionReference
@@ -141,9 +142,11 @@ extension Firestore: MKFirestore {
             firestoreQuery = firestoreQuery.limit(to: limit)
         }
         
-        return firestoreQuery.addSnapshotListener { snapshot, error in
-            listener.handle(snapshot?.documentChanges, error: error, for: listener.query)
+        let registration: ListenerRegistration = firestoreQuery.addSnapshotListener { snapshot, error in
+//            listener.handle(snapshot?.documentChanges, error: error, for: listener.query)
         }
+        
+        return MKFirestoreListenerRegistration(registration: registration)
     }
     
     // MARK: - Handle Error
@@ -151,7 +154,7 @@ extension Firestore: MKFirestore {
         print("$ MKFirestore: Finished collection Query for path \(query.firestoreReference.rawPath) with Error")
         var specificError: MKFirestoreError
         if let firestoreError = error as? FirebaseFirestore.FirestoreErrorCode {
-            specificError = .firestoreError(firestoreError)
+            specificError = .firestoreError(firestoreError.description)
         } else {
             specificError = .parsingError(error)
         }

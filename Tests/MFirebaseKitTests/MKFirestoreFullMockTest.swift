@@ -8,6 +8,7 @@
 import XCTest
 @testable import MFirebaseKitDebug
 @testable import MFirebaseKit
+import MFirebaseKitCore
 
 final class MKFirestoreFullMockTest: XCTestCase {
     
@@ -129,9 +130,9 @@ extension MKFirestoreFullMockTest {
         
         var collectionReference: MKFirestoreCollectionReference = .collection("Main").document("Test").collection("Recipes")
         
-        var orderDescriptor: MFirebaseKit.OrderDescriptor? = nil
+        var orderDescriptor: OrderDescriptor? = nil
         var limit: Int? = nil
-        var filters: [MFirebaseKit.MKFirestoreQueryFilter] = []
+        var filters: [MKFirestoreQueryFilter] = []
         var mockResultData: [MKFirestoreFullMockTest.Recipe] = []
     }
 }

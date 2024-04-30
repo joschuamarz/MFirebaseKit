@@ -5,8 +5,8 @@
 //  Created by Joschua Marz on 22.09.23.
 //
 
-import FirebaseFirestore
-import FirebaseFirestoreSwift
+
+import Foundation
 
 public protocol MKFirestoreQuery {
     var firestoreReference: MKFirestoreReference { get }
@@ -35,7 +35,7 @@ public struct MKFirestoreDocumentQueryResponse<Query: MKFirestoreDocumentQuery> 
     public let error: MKFirestoreError?
     public let responseData: Query.ResultData?
     
-    init(error: MKFirestoreError?, responseData: Query.ResultData?) {
+    public init(error: MKFirestoreError?, responseData: Query.ResultData?) {
         self.responseData = responseData
         self.error = error
     }
@@ -46,7 +46,7 @@ extension MKFirestoreDocumentQueryResponse {
         if let responseData {
             return "DocumentQuery succeeded"
         } else {
-            return "DocumentQuery \(errorLogMessage(error ?? .firestoreError(FirestoreErrorCode(FirestoreErrorCode.internal))))"
+            return "DocumentQuery \(errorLogMessage(error ?? .internalError("Document Query")))"
         }
     }
     

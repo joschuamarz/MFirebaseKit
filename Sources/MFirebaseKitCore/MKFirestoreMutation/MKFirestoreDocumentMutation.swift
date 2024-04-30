@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import FirebaseFirestore
 
 /// Mutation that changes data on Firestore document
 ///
@@ -38,6 +37,11 @@ public struct MKFirestoreMutationResponse {
     public let documentId: String?
     /// Optional `MKFirestoreError` providing more information if an error occurred
     public let error: MKFirestoreError?
+    
+    public init(documentId: String?, error: MKFirestoreError?) {
+        self.documentId = documentId
+        self.error = error
+    }
 }
 
 extension MKFirestoreMutationResponse {
@@ -45,7 +49,7 @@ extension MKFirestoreMutationResponse {
         if let documentId {
             return "DocumentMutation succeeded with documentID \(documentId)"
         } else {
-            return "DocumentMutation \(errorLogMessage(error ?? .firestoreError(FirestoreErrorCode(FirestoreErrorCode.internal))))"
+            return "DocumentMutation \(errorLogMessage(error ?? MKFirestoreError.internalError("Document Mutation")))"
         }
     }
     

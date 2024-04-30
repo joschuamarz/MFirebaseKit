@@ -5,9 +5,8 @@
 //  Created by Joschua Marz on 26.09.23.
 //
 
-import FirebaseFirestore
-import FirebaseFirestoreSwift
 
+import Foundation
 
 public class MKFirestoreMock: MKFirestore {
     
@@ -46,7 +45,7 @@ public class MKFirestoreMock: MKFirestore {
         
     }
     
-    public func addCollectionListener<T: MKFirestoreCollectionQuery>(_ listener: MKFirestoreCollectionListener<T>) -> ListenerRegistration {
+    public func addCollectionListener<T: MKFirestoreCollectionQuery>(_ listener: MKFirestoreCollectionListener<T>) -> MKListenerRegistration {
         let listenerId: String = UUID().uuidString
         activeListeners.append(listenerId)
         if listenerMockMode != .none {
@@ -118,7 +117,7 @@ public class MKFirestoreMock: MKFirestore {
         } catch {
             return MKFirestoreMutationResponse(
                 documentId: nil,
-                error: .firestoreError(FirestoreErrorCode(FirestoreErrorCode.unknown)))
+                error: .internalError("FirestoreMock"))
         }
     }
     
@@ -172,7 +171,7 @@ public class MKFirestoreMock: MKFirestore {
                 }
             }
         } catch {
-            return MKFirestoreDocumentQueryResponse(error: .firestoreError(.init(FirestoreErrorCode.unknown)), responseData: nil)
+            return MKFirestoreDocumentQueryResponse(error: .internalError("FirestoreMock"), responseData: nil)
         }
     }
     
@@ -202,7 +201,7 @@ public class MKFirestoreMock: MKFirestore {
                 }
             }
         } catch {
-            return MKFirestoreCollectionQueryResponse(error: .firestoreError(.init(FirestoreErrorCode.unknown)), responseData: nil)
+            return MKFirestoreCollectionQueryResponse(error: .internalError("FirestoreMock"), responseData: nil)
         }
     }
     
@@ -218,24 +217,20 @@ public class MKFirestoreMock: MKFirestore {
     
     
     // MARK: - Respond Document
-    public func respond(to mutation: MKFirestoreDocumentMutation, with error: FirestoreErrorCode.Code?) {
+    public func respond(to mutation: MKFirestoreDocumentMutation, with error: MKFirestoreError?) {
         if let pendingMutation = pendingMutations.first(where: { $0.path == mutation.firestoreReference.rawPath }) {
-            var firestoreError: MKFirestoreError? = nil
             if let error {
-                firestoreError = .firestoreError(FirestoreErrorCode(error))
-            }
-            if let firestoreError {
                 print("$ MKFirestoreMock: Finished Mutation for path \(mutation.firestoreReference.rawPath) with error")
-                print("$ MKFirestoreMock: \(firestoreError.localizedDescription)")
+                print("$ MKFirestoreMock: \(error.localizedDescription)")
             } else {
                 print("$ MKFirestoreMock: Successfully finished Mutation for path \(mutation.firestoreReference.rawPath)")
             }
-            pendingMutation.responseHandler?(firestoreError)
+            pendingMutation.responseHandler?(error)
         }
     }
     
-    public func respond<T: MKFirestoreDocumentQuery>(to query: T, with error: FirestoreErrorCode.Code) {
-        let response = MKFirestoreDocumentQueryResponse<T>(error: .firestoreError(FirestoreErrorCode(error)), responseData: nil)
+    public func respond<T: MKFirestoreDocumentQuery>(to query: T, with error: MKFirestoreError) {
+        let response = MKFirestoreDocumentQueryResponse<T>(error: error, responseData: nil)
         respond(to: query, with: response)
     }
     
@@ -257,8 +252,8 @@ public class MKFirestoreMock: MKFirestore {
         }
     }
     
-    public func respond<T: MKFirestoreCollectionQuery>(to query: T, with error: FirestoreErrorCode.Code) {
-        let response = MKFirestoreCollectionQueryResponse<T>(error: .firestoreError(FirestoreErrorCode(error)), responseData: nil)
+    public func respond<T: MKFirestoreCollectionQuery>(to query: T, with error: MKFirestoreError) {
+        let response = MKFirestoreCollectionQueryResponse<T>(error: error, responseData: nil)
         respond(to: query, with: response)
     }
     

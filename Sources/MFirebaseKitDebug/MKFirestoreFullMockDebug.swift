@@ -7,7 +7,7 @@
 
 import Foundation
 import XCTest
-import MFirebaseKit
+import MFirebaseKitCore
 //import FirebaseFirestore
 
 public struct Printer {

@@ -7,6 +7,7 @@
 
 import XCTest
 @testable import MFirebaseKit
+import MFirebaseKitCore
 
 final class MKFirestoreCollectionListenerTest: XCTestCase {
     
@@ -18,11 +19,11 @@ final class MKFirestoreCollectionListenerTest: XCTestCase {
     struct TestCollectionQuery: MKFirestoreCollectionQuery {
         typealias BaseResultData = TestResultData
         
-        var collectionReference: MFirebaseKit.MKFirestoreCollectionReference = .collection("Test")
+        var collectionReference: MKFirestoreCollectionReference = .collection("Test")
         
-        var orderDescriptor: MFirebaseKit.OrderDescriptor? = nil
+        var orderDescriptor: OrderDescriptor? = nil
         var limit: Int? = nil
-        var filters: [MFirebaseKit.MKFirestoreQueryFilter] = []
+        var filters: [MKFirestoreQueryFilter] = []
 
         var mockResultData: [MKFirestoreCollectionListenerTest.TestResultData] = [
             .init(id: "1", name: "Test 1"),

@@ -7,6 +7,7 @@
 
 import XCTest
 @testable import MFirebaseKit
+import MFirebaseKitCore
 
 final class MKCollectionListenerMockTest: XCTestCase {
     
@@ -23,7 +24,7 @@ final class MKCollectionListenerMockTest: XCTestCase {
     }
     
     struct MealDeletion: MKFirestoreDocumentDeletion {
-        var documentReference: MFirebaseKit.MKFirestoreDocumentReference
+        var documentReference: MKFirestoreDocumentReference
         
         init(id: String) {
             documentReference = .collection("test").document(id)
@@ -31,9 +32,9 @@ final class MKCollectionListenerMockTest: XCTestCase {
     }
     
     struct MealMutation: MKFirestoreDocumentMutation {
-        var firestoreReference: MFirebaseKit.MKFirestoreReference
+        var firestoreReference: MKFirestoreReference
         
-        var operation: MFirebaseKit.MKFirestoreMutationOperation
+        var operation: MKFirestoreMutationOperation
         
         init(meal: Meal) {
             self.firestoreReference = .collection("test").document(meal.id)
@@ -44,15 +45,15 @@ final class MKCollectionListenerMockTest: XCTestCase {
     struct GetMealsQuery: MKFirestoreCollectionQuery {
         typealias BaseResultData = Meal
         
-        var collectionReference: MFirebaseKit.MKFirestoreCollectionReference = .collection("test")
+        var collectionReference: MKFirestoreCollectionReference = .collection("test")
         
         var mockResultData: [MKCollectionListenerMockTest.Meal] = []
         
-        var orderDescriptor: MFirebaseKit.OrderDescriptor? = nil
+        var orderDescriptor: OrderDescriptor? = nil
         
         var limit: Int? = nil
         
-        var filters: [MFirebaseKit.MKFirestoreQueryFilter]
+        var filters: [MKFirestoreQueryFilter]
         
         init(name: String) {
             filters = [.isEqualTo("name", name)]

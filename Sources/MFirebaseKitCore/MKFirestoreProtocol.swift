@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import FirebaseFirestore
 
 public protocol MKFirestore {
     
@@ -51,7 +50,7 @@ public protocol MKFirestore {
     
     // MARK: - Listener
     
-    func addCollectionListener<T: MKFirestoreCollectionQuery>(_ listener: MKFirestoreCollectionListener<T>) -> ListenerRegistration
+    func addCollectionListener<T: MKFirestoreCollectionQuery>(_ listener: MKFirestoreCollectionListener<T>) -> MKListenerRegistration
 }
 
 // MARK: - Default Implementations
