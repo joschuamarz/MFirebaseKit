@@ -143,7 +143,7 @@ extension Firestore: MKFirestore {
         }
         
         let registration: ListenerRegistration = firestoreQuery.addSnapshotListener { snapshot, error in
-//            listener.handle(snapshot?.documentChanges, error: error, for: listener.query)
+            listener.handle(snapshot?.documentChanges, error: error, for: listener.query)
         }
         
         return MKFirestoreListenerRegistration(registration: registration)

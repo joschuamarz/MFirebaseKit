@@ -44,24 +44,32 @@ open class MKFirestoreFullMock: MKFirestore {
     }
     
     open func executeCollectionQuery<T>(_ query: T) -> MKFirestoreCollectionQueryResponse<T> where T : MKFirestoreCollectionQuery {
+        log(query)
         let responseData = dataMap[query.firestoreReference.rawPath] as? [T.BaseResultData]
-        return .init(error: nil, responseData: responseData?.applyFilters(query.filters))
+        let response: MKFirestoreCollectionQueryResponse<T> = .init(error: nil, responseData: responseData?.applyFilters(query.filters))
+        log(response, for: query.firestoreReference)
+        return response
     }
     
     open func executeDocumentQuery<T>(_ query: T) -> MKFirestoreDocumentQueryResponse<T> where T : MKFirestoreDocumentQuery {
+        log(query)
         let id = query.firestoreReference.leafId ?? "non-existing-id"
         let objects = dataMap[query.documentReference.leafCollectionPath] as? [T.ResultData]
-        return .init(error: nil, responseData: objects?.applyFilters([.isEqualTo("id", id)]).first)
+        let response: MKFirestoreDocumentQueryResponse<T> = .init(error: nil, responseData: objects?.applyFilters([.isEqualTo("id", id)]).first)
+        log(response, for: query.firestoreReference)
+        return response
     }
     
     open func executeDeletion(_ deletion: MKFirestoreDocumentDeletion) -> MKFirestoreError? {
         let id = deletion.firestoreReference.leafId ?? "non-existing-id"
         dataMap[deletion.documentReference.leafCollectionPath]?.removeAllMatching(fieldName: "id", value: id)
+        log(deletion)
         return nil
     }
     
     @discardableResult
     open func executeMutation(_ mutation: MKFirestoreDocumentMutation) -> MKFirestoreMutationResponse {
+        log(mutation)
         let object = mutation.operation.object as Any
         let id = mutation.firestoreReference.leafId ?? "non-existing-id"
         let key = mutation.firestoreReference.leafCollectionPath
@@ -73,7 +81,9 @@ open class MKFirestoreFullMock: MKFirestore {
             dataMap.updateValue([object], forKey: key)
         }
         let documentId = (object as? any Identifiable)?.id
-        return .init(documentId: documentId.flatMap({ "\($0)" }), error: nil)
+        let response: MKFirestoreMutationResponse = .init(documentId: documentId.flatMap({ "\($0)" }), error: nil)
+        log(response, for: mutation.firestoreReference)
+        return response
     }
     
     open func addCollectionListener<T>(_ listener: MKFirestoreCollectionListener<T>) -> MKListenerRegistration where T : MKFirestoreCollectionQuery {
@@ -83,6 +93,7 @@ open class MKFirestoreFullMock: MKFirestore {
                 let key = listener.query.firestoreReference.leafCollectionPath
                 if let objects = self?.dataMap[key] as? [T.BaseResultData] {
                     listener.objects = objects
+                    self?.logListenerChange(for: listener)
                 }
             },
             onRemove: { [weak self] in
@@ -94,5 +105,30 @@ open class MKFirestoreFullMock: MKFirestore {
         registration.onChange()
         // return registration
         return registration
+    }
+    
+    // MARK: - Logging
+    open func log(_ query: MKFirestoreQuery) {
+        print("$ MKFirestoreFullMockDebug: \(query.executionLogMessage) ")
+    }
+    
+    open func log(_ response: MKFirestoreMutationResponse, for firestoreReference: MKFirestoreReference) {
+        print("$ MKFirestoreFullMockDebug: \(response.responseLogMessage) ")
+    }
+    
+    open func log<Q: MKFirestoreDocumentQuery>(_ response: MKFirestoreDocumentQueryResponse<Q>, for firestoreReference: MKFirestoreReference) {
+        print("$ MKFirestoreFullMockDebug: \(response.responseLogMessage) ")
+    }
+    
+    open func log<Q: MKFirestoreCollectionQuery>(_ response: MKFirestoreCollectionQueryResponse<Q>, for firestoreReference: MKFirestoreReference) {
+        print("$ MKFirestoreFullMockDebug: \(response.responseLogMessage) ")
+    }
+    
+    open func log(_ deletion: MKFirestoreDocumentDeletion) {
+        print("$ MKFirestoreFullMockDebug:  \(deletion.executionLogMessage) ")
+    }
+    
+    open func logListenerChange<T: MKFirestoreCollectionQuery>(for listener: MKFirestoreCollectionListener<T>) {
+        print("$ MKFirestoreFullMockDebug: Listener \(listener.id) did change with \(listener.objects.count) objects")
     }
 }

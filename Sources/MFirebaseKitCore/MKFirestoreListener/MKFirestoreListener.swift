@@ -138,7 +138,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
         }
     }
     // MARK: - Universal change handler
-    func handle(_ changes: [MKDocumentChange]?, error: Error?, for query: Query) {
+    public func handle(_ changes: [MKDocumentChange]?, error: Error?, for query: Query) {
         guard isListening && query.isEqual(to: self.query) else { return }
         guard let changes else {
             if let error { handle(error) }
