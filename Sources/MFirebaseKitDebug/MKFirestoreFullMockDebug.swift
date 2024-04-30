@@ -6,7 +6,7 @@
 //
 
 import Foundation
-//import XCTest
+import XCTest
 //import MFirebaseKit
 //import FirebaseFirestore
 
@@ -16,6 +16,13 @@ public struct Printer {
     }
 }
 
+public class MyExpectation: XCTestExpectation {
+    public let name: String
+    public init(name: String) {
+        self.name = name
+        super.init()
+    }
+}
 //extension Array {
 //    mutating func removeFirst(where shouldBeRemoved: (Element) throws -> Bool) rethrows -> Element? {
 //        if let index = try firstIndex(where: shouldBeRemoved) {
