@@ -70,8 +70,8 @@ let package = Package(
             dependencies: ["MFirebaseKitFirestoreCore"]
         ),
         .testTarget(
-            name: "MFirebaseKitTests",
-            dependencies: ["MFirebaseKitFirestoreShared"]
+            name: "MFirebaseKitFirestoreTests",
+            dependencies: ["MFirebaseKitFirestoreShared", "MFirebaseKitFirestoreCore", "MFirebaseKitFirestoreDebug"]
         ),
         .testTarget(
             name: "MFirebaseKitAnalyticsTests",
