@@ -8,7 +8,7 @@
 import Foundation
 import FirebaseFirestore
 import FirebaseFirestoreSwift
-import MFirebaseKitCore
+import MFirebaseKitFirestoreCore
 
 class MKFirestoreListenerRegistration: MKListenerRegistration {
     private let registration: ListenerRegistration

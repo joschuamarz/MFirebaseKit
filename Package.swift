@@ -20,16 +20,16 @@ let package = Package(
             targets: ["MFirebaseKitAnalyticsShared"]
         ),
         .library(
-            name: "MFirebaseKitCore",
-            targets: ["MFirebaseKitCore"]
+            name: "MFirebaseKitFirestoreCore",
+            targets: ["MFirebaseKitFirestoreCore"]
         ),
         .library(
-            name: "MFirebaseKitFirestore",
-            targets: ["MFirebaseKitFirestore"]
+            name: "MFirebaseKitFirestoreShared",
+            targets: ["MFirebaseKitFirestoreShared"]
         ),
         .library(
-            name: "MFirebaseKitDebug",
-            targets: ["MFirebaseKitDebug"]
+            name: "MFirebaseKitFirestoreDebug",
+            targets: ["MFirebaseKitFirestoreDebug"]
         ),
     ],
     dependencies: [
@@ -52,13 +52,13 @@ let package = Package(
             ]
         ),
         .target(
-            name: "MFirebaseKitCore",
+            name: "MFirebaseKitFirestoreCore",
             dependencies: []
         ),
         .target(
-            name: "MFirebaseKitFirestore",
+            name: "MFirebaseKitFirestoreShared",
             dependencies: [
-                "MFirebaseKitCore",
+                "MFirebaseKitFirestoreCore",
                 .product(name: "FirebaseAuth", package: "firebase-ios-sdk"),
                 .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
                 .product(name: "FirebaseStorage", package: "firebase-ios-sdk"),
@@ -66,12 +66,12 @@ let package = Package(
             ]
         ),
         .target(
-            name: "MFirebaseKitDebug",
-            dependencies: ["MFirebaseKitCore"]
+            name: "MFirebaseKitFirestoreDebug",
+            dependencies: ["MFirebaseKitFirestoreCore"]
         ),
         .testTarget(
             name: "MFirebaseKitTests",
-            dependencies: ["MFirebaseKitFirestore"]
+            dependencies: ["MFirebaseKitFirestoreShared"]
         ),
         .testTarget(
             name: "MFirebaseKitAnalyticsTests",

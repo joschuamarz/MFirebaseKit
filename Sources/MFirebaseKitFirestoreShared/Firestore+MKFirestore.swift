@@ -7,7 +7,7 @@
 
 import FirebaseFirestore
 import FirebaseFirestoreSwift
-import MFirebaseKitCore
+import MFirebaseKitFirestoreCore
 
 extension MKFirestore {
     typealias shared = Firestore

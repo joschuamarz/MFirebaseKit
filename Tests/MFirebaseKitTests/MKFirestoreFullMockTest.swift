@@ -6,9 +6,8 @@
 //
 
 import XCTest
-@testable import MFirebaseKitDebug
-@testable import MFirebaseKit
-import MFirebaseKitCore
+@testable import MFirebaseKitFirestoreDebug
+import MFirebaseKitFirestoreCore
 
 final class MKFirestoreFullMockTest: XCTestCase {
     

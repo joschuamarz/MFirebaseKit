@@ -6,8 +6,7 @@
 //
 
 import XCTest
-@testable import MFirebaseKit
-import MFirebaseKitCore
+import MFirebaseKitFirestoreCore
 
 final class MKCollectionListenerMockTest: XCTestCase {
     

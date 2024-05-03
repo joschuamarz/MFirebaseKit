@@ -6,13 +6,13 @@
 //
 
 import Foundation
-import MFirebaseKitCore
+import MFirebaseKitFirestoreCore
 import FirebaseFirestore
 import FirebaseFirestoreSwift
 
 
 extension DocumentChange: MKDocumentChange {
-    public var changeType: MFirebaseKitCore.MKDocumentChangeType {
+    public var changeType: MKDocumentChangeType {
         switch self.type {
         case .added: return .added
         case .modified: return .modified

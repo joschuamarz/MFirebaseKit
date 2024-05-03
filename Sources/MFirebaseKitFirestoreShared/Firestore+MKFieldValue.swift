@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import MFirebaseKitCore
+import MFirebaseKitFirestoreCore
 import FirebaseFirestore
 
 

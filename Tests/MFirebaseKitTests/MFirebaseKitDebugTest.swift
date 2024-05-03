@@ -7,9 +7,8 @@
 
 import Foundation
 import XCTest
-import MFirebaseKit
-import MFirebaseKitDebug
-import MFirebaseKitCore
+import MFirebaseKitFirestoreDebug
+import MFirebaseKitFirestoreCore
 
 final class MFirebaseKitDebugTest: XCTestCase {
     

@@ -7,7 +7,7 @@
 
 import Foundation
 import XCTest
-import MFirebaseKitCore
+import MFirebaseKitFirestoreCore
 //import FirebaseFirestore
 
 
