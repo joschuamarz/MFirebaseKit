@@ -10,7 +10,7 @@ import FirebaseFirestoreSwift
 import MFirebaseKitFirestoreCore
 
 extension MKFirestore {
-    typealias shared = Firestore
+    public typealias shared = Firestore
 }
 
 @available(macOS 10.15, *)
