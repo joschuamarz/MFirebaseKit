@@ -74,9 +74,9 @@ public class MKFirestoreListenerMock<BaseResultType: Codable & Identifiable>: MK
                 listener.objects = results
             }
         }
-        return MockListenerRegistration { [weak self] in
+        return MockListenerRegistration(onRemove:  { [weak self] in
             // self?.activeListeners.removeAll(where: { $0 == listenerId })
-        }
+        })
     }
 }
 

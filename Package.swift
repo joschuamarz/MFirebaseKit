@@ -12,6 +12,14 @@ let package = Package(
     products: [
         // Products define the executables and libraries a package produces, and make them visible to other packages.
         .library(
+            name: "MFirebaseKitAnalyticsCore",
+            targets: ["MFirebaseKitAnalyticsCore"]
+        ),
+        .library(
+            name: "MFirebaseKitAnalyticsShared",
+            targets: ["MFirebaseKitAnalyticsShared"]
+        ),
+        .library(
             name: "MFirebaseKitCore",
             targets: ["MFirebaseKitCore"]
         ),
@@ -32,6 +40,17 @@ let package = Package(
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
         // Targets can depend on other targets in this package, and on products in packages this package depends on.
+        .target(
+            name: "MFirebaseKitAnalyticsCore",
+            dependencies: []
+        ),
+        .target(
+            name: "MFirebaseKitAnalyticsShared",
+            dependencies: [
+                "MFirebaseKitAnalyticsCore",
+                .product(name: "FirebaseAnalytics", package: "firebase-ios-sdk"),
+            ]
+        ),
         .target(
             name: "MFirebaseKitCore",
             dependencies: []
@@ -54,5 +73,9 @@ let package = Package(
             name: "MFirebaseKitTests",
             dependencies: ["MFirebaseKitFirestore"]
         ),
+        .testTarget(
+            name: "MFirebaseKitAnalyticsTests",
+            dependencies: ["MFirebaseKitAnalyticsCore", "MFirebaseKitAnalyticsShared"]
+        )
     ]
 )

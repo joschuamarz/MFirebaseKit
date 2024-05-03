@@ -9,9 +9,17 @@ import FirebaseFirestore
 import FirebaseFirestoreSwift
 import MFirebaseKitCore
 
+extension MKFirestore {
+    typealias shared = Firestore
+}
+
 @available(macOS 10.15, *)
 extension Firestore: MKFirestore {
         
+    public static func instance() -> MKFirestore {
+        return Firestore.firestore()
+    }
+    
     // MARK: - Mutations
     
     /// Asynchonously executes a Mutation and returns the corresponding `MKFirestoreMutationResponse`.
