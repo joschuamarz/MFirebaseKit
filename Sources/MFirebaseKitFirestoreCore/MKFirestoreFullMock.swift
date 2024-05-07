@@ -93,6 +93,7 @@ open class MKFirestoreFullMock: MKFirestore {
                 let key = listener.query.firestoreReference.leafCollectionPath
                 if let objects = self?.dataMap[key] as? [T.BaseResultData] {
                     listener.objects = objects
+                    listener.didFinishInitialLoad = true
                     self?.logListenerChange(for: listener)
                 }
             },
