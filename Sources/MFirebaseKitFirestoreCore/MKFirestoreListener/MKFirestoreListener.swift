@@ -36,42 +36,35 @@ public class MockListenerRegistration: NSObject, MKListenerRegistration {
 }
 
 public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: ObservableObject, Identifiable {
-    public typealias AdditionalChangeHandler = (Query.BaseResultData) async ->Query.BaseResultData?
-    public typealias ErrorHandler = (Error)->Void
+    public typealias AdditionalChangeHandler = (Query.BaseResultData) async -> Query.BaseResultData?
+    public typealias ErrorHandler = (Error) -> Void
     public typealias AddedOrModifiedProcessor = (Query.BaseResultData) async -> Query.BaseResultData?
 
     // Listener Registration
     public let id: String = UUID().uuidString
     private var listenerRegistration: MKListenerRegistration?
-    public var isListening: Bool {
-        return listenerRegistration != nil
-    }
+    public var isListening: Bool { listenerRegistration != nil }
 
-    @Published public var didFinishInitialLoad: Bool = false
-    @Published public var objects: [Query.BaseResultData] = []
-    
+    @Published public private(set) var didFinishInitialLoad: Bool = false
+    @Published public private(set) var objects: [Query.BaseResultData] = []
+
     public var query: Query
     private let firestore: MKFirestore
-    
-    // Handler
-    public var onDidFinishInitialLoading: (()->Void)?
+
+    // Handlers
+    public var onDidFinishInitialLoading: (() -> Void)?
     public var onErrorHandler: ErrorHandler?
-    
+    public var onAddedOrModifiedProcessor: AddedOrModifiedProcessor?
+
     private var isMockedListener: Bool {
         return firestore is MKFirestoreMock
     }
-    
-    /// Processes any object that will get added or modified
-    ///
-    /// Not called on objects that will be removed
-    /// You can use this for example to load a subcollection and add it to the object's properties
-    public var onAddedOrModifiedProcessor: AddedOrModifiedProcessor?
-    
+
     // MARK: - Init
     public init(
         query: Query,
         firestore: MKFirestore,
-        onDidFinishInitialLoading: (()->Void)? = nil,
+        onDidFinishInitialLoading: (() -> Void)? = nil,
         onAddedOrModifiedProcessor: AddedOrModifiedProcessor? = nil,
         onErrorHandler: ErrorHandler? = nil
     ) {
@@ -81,41 +74,39 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
         self.onAddedOrModifiedProcessor = onAddedOrModifiedProcessor
         self.onErrorHandler = onErrorHandler
     }
-    
-    // MARK: - State
+
+    // MARK: - State Management
     public func startListening() {
         guard !isListening else { return }
         listenerRegistration = firestore.addCollectionListener(self)
     }
-    
+
     public func stopListening() {
         listenerRegistration?.remove()
-        objects.removeAll()
         listenerRegistration = nil
+        objects.removeAll()
         didFinishInitialLoad = false
     }
-    
-    public func replaceQuery(with query: Query) {
+
+    public func replaceQuery(with newQuery: Query) {
         stopListening()
-        self.query = query
+        self.query = newQuery
     }
-    
+
     // MARK: - Error Handling
     public func handle(_ error: Error) {
-        // handle error
         onErrorHandler?(error)
     }
-    
-    // MARK: - Object change handling
+
+    // MARK: - Object Change Handling
     private func publishInitialLoading() {
-        if !didFinishInitialLoad {
-            didFinishInitialLoad = true
-            onDidFinishInitialLoading?()
-        }
+        guard !didFinishInitialLoad else { return }
+        didFinishInitialLoad = true
+        onDidFinishInitialLoading?()
     }
-    
-    actor ResultActor {
-        var results: [Query.BaseResultData]
+
+    actor ResultsActor {
+        private(set) var results: [Query.BaseResultData]
         
         init(results: [Query.BaseResultData]) {
             self.results = results
@@ -134,22 +125,29 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
         }
         
         func removeAll(by id: Query.BaseResultData.ID) {
-            results.removeAll(where: { $0.id == id })
+            results.removeAll { $0.id == id }
         }
     }
-    // MARK: - Universal change handler
+
+    // MARK: - Universal Change Handler
     public func handle(_ changes: [MKDocumentChange]?, error: Error?, for query: Query) {
         guard isListening && query.isEqual(to: self.query) else { return }
-        guard let changes else {
-            if let error { handle(error) }
+        
+        if let error = error {
+            handle(error)
             return
         }
+        
+        guard let changes = changes else { return }
+        
         Task {
             let dispatchGroup = DispatchGroup()
-            let resultsActor = ResultActor(results: self.objects)
+            let resultsActor = ResultsActor(results: self.objects)
+            
             for change in changes {
                 dispatchGroup.enter()
                 Task(priority: .background) {
+                    defer { dispatchGroup.leave() }
                     do {
                         let object = try change.object(as: Query.BaseResultData.self)
                         switch change.changeType {
@@ -169,14 +167,12 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
                     } catch {
                         handle(error)
                     }
-                    dispatchGroup.leave()
                 }
             }
             
             dispatchGroup.notify(queue: .global()) {
                 Task {
                     let finalResults = await resultsActor.results
-                    print("$ MKFirestoreListener: processed \(changes.count) changes")
                     DispatchQueue.main.async {
                         self.objects = finalResults
                         self.publishInitialLoading()
@@ -185,10 +181,10 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
             }
         }
     }
-    
+
     private func processObjectIfNeeded(_ object: Query.BaseResultData) async -> Query.BaseResultData? {
-        guard let onAddedOrModifiedProcessor else { return object }
-        return await onAddedOrModifiedProcessor(object)
+        guard let processor = onAddedOrModifiedProcessor else { return object }
+        return await processor(object)
     }
 }
 
