@@ -45,8 +45,8 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
     private var listenerRegistration: MKListenerRegistration?
     public var isListening: Bool { listenerRegistration != nil }
 
-    @Published public private(set) var didFinishInitialLoad: Bool = false
-    @Published public private(set) var objects: [Query.BaseResultData] = []
+    @Published public var didFinishInitialLoad: Bool = false
+    @Published public var objects: [Query.BaseResultData] = []
 
     public var query: Query
     private let firestore: MKFirestore
