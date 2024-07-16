@@ -150,11 +150,12 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
         publishInitialLoading()
         
         // post-processing
+        guard let onAddedOrModifiedProcessor else { return }
         let finalModifiedObjects = modifiedObjects
         Task {
             var resultsDict: [String: Query.BaseResultData?] = [:]
             for object in finalModifiedObjects {
-                let updatedObject = await onAddedOrModifiedProcessor?(object)
+                let updatedObject = await onAddedOrModifiedProcessor(object)
                 resultsDict.updateValue(updatedObject, forKey: "\(object.id)")
             }
             let finalResultsDict = resultsDict
