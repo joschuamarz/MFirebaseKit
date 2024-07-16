@@ -46,9 +46,8 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
     public var isListening: Bool { listenerRegistration != nil }
 
     @Published public var didFinishInitialLoad: Bool = false
-    @Published public var objects: [Query.BaseResultData] = []
-    @Published private var objectIdMap: [String: Query.BaseResultData] = [:]
-    public var flatObjects: [Query.BaseResultData] {
+    @Published var objectIdMap: [String: Query.BaseResultData] = [:]
+    public var objects: [Query.BaseResultData] {
         return objectIdMap.map { $0.value }
     }
 
@@ -88,7 +87,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
     public func stopListening() {
         listenerRegistration?.remove()
         listenerRegistration = nil
-        objects.removeAll()
+        objectIdMap.removeAll()
         didFinishInitialLoad = false
     }
 
@@ -128,18 +127,10 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
             do {
                 let object = try change.object(as: Query.BaseResultData.self)
                 switch change.changeType {
-                case .added:
+                case .added, .modified:
                     modifiedObjects.append(object)
-                    objects.append(object)
-                    objectIdMap.updateValue(object, forKey: "\(object.id)")
-                case .modified:
-                    modifiedObjects.append(object)
-                    if let index = objects.firstIndex(where: { $0.id == object.id }) {
-                        objects[index] = object
-                    }
                     objectIdMap.updateValue(object, forKey: "\(object.id)")
                 case .removed:
-                    objects.removeAll { $0.id == object.id }
                     objectIdMap.removeValue(forKey: "\(object.id)")
                 }
             } catch {
@@ -178,7 +169,9 @@ extension MKFirestoreCollectionListener {
     func handleMockChanges(_ dataMap: [String: [Any]]) {
         let key = query.firestoreReference.leafCollectionPath
         if let objects = dataMap[key] as? [Query.BaseResultData] {
-            self.objects = objects
+            self.objectIdMap = objects.reduce(into: [String: Query.BaseResultData](), { partialResult, object in
+                partialResult.updateValue(object, forKey: "\(object.id)")
+            })
         }
     }
 }

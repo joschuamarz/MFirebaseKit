@@ -92,7 +92,10 @@ open class MKFirestoreFullMock: MKFirestore {
             onChange: { [weak self] in
                 let key = listener.query.firestoreReference.leafCollectionPath
                 if let objects = self?.dataMap[key] as? [T.BaseResultData] {
-                    listener.objects = objects
+                    listener.objectIdMap = objects.reduce(into: [String: T.BaseResultData](), { partialResult, object in
+                        partialResult.updateValue(object, forKey: "\(object.id)")
+                    })
+
                     listener.didFinishInitialLoad = true
                     self?.logListenerChange(for: listener)
                 }
