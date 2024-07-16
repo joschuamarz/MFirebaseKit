@@ -47,6 +47,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
 
     @Published public var didFinishInitialLoad: Bool = false
     @Published public var objects: [Query.BaseResultData] = []
+    @Published private var objectIdMap: [String: Query.BaseResultData] = [:]
 
     public var query: Query
     private let firestore: MKFirestore
@@ -92,6 +93,15 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
         stopListening()
         self.query = newQuery
     }
+    
+    public func getObject(by id: String) -> Query.BaseResultData? {
+        if let object = objectIdMap[id] {
+            return object
+        } else if let object = objects.first(where: { "\($0.id)" == id }) {
+            return object
+        }
+        return nil
+    }
 
     // MARK: - Error Handling
     public func handle(_ error: Error) {
@@ -105,30 +115,6 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
         onDidFinishInitialLoading?()
     }
 
-    actor ResultsActor {
-        private(set) var results: [Query.BaseResultData]
-        
-        init(results: [Query.BaseResultData]) {
-            self.results = results
-        }
-        
-        func add(_ result: Query.BaseResultData) {
-            results.append(result)
-        }
-        
-        func replace(with result: Query.BaseResultData) -> Bool {
-            if let index = results.firstIndex(where: { $0.id == result.id }) {
-                results[index] = result
-                return true
-            }
-            return false
-        }
-        
-        func removeAll(by id: Query.BaseResultData.ID) {
-            results.removeAll { $0.id == id }
-        }
-    }
-
     // MARK: - Universal Change Handler
     public func handle(_ changes: [MKDocumentChange]?, error: Error?, for query: Query) {
         guard isListening && query.isEqual(to: self.query) else { return }
@@ -139,52 +125,28 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
         }
         
         guard let changes = changes else { return }
-        
-        Task {
-            let dispatchGroup = DispatchGroup()
-            let resultsActor = ResultsActor(results: self.objects)
-            
-            for change in changes {
-                dispatchGroup.enter()
-                Task(priority: .background) {
-                    defer { dispatchGroup.leave() }
-                    do {
-                        let object = try change.object(as: Query.BaseResultData.self)
-                        switch change.changeType {
-                        case .added:
-                            if let newObject = await processObjectIfNeeded(object) {
-                                await resultsActor.add(newObject)
-                            }
-                        case .modified:
-                            if let newObject = await processObjectIfNeeded(object) {
-                                if await !resultsActor.replace(with: newObject) {
-                                    await resultsActor.add(newObject)
-                                }
-                            }
-                        case .removed:
-                            await resultsActor.removeAll(by: object.id)
-                        }
-                    } catch {
-                        handle(error)
+        for change in changes {
+            do {
+                let object = try change.object(as: Query.BaseResultData.self)
+                switch change.changeType {
+                case .added:
+                    objects.append(object)
+                    objectIdMap.updateValue(object, forKey: "\(object.id)")
+                case .modified:
+                    if let index = objects.firstIndex(where: { $0.id == object.id }) {
+                        objects[index] = object
                     }
+                    objectIdMap.updateValue(object, forKey: "\(object.id)")
+                case .removed:
+                    objects.removeAll { $0.id == object.id }
+                    objectIdMap.removeValue(forKey: "\(object.id)")
                 }
-            }
-            
-            dispatchGroup.notify(queue: .global()) {
-                Task {
-                    let finalResults = await resultsActor.results
-                    DispatchQueue.main.async {
-                        self.objects = finalResults
-                        self.publishInitialLoading()
-                    }
-                }
+            } catch {
+                handle(error)
             }
         }
-    }
-
-    private func processObjectIfNeeded(_ object: Query.BaseResultData) async -> Query.BaseResultData? {
-        guard let processor = onAddedOrModifiedProcessor else { return object }
-        return await processor(object)
+        
+        publishInitialLoading()
     }
 }
 
