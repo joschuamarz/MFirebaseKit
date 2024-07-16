@@ -66,17 +66,19 @@ public class MKFirestoreListenerMock<BaseResultType: Codable & Identifiable>: MK
     public func addCollectionListener<T>(_ listener: MKFirestoreCollectionListener<T>) -> MKListenerRegistration where T : MKFirestoreCollectionQuery {
         self.changeHandler = { objects in
             if let objects = objects as? [T.BaseResultData] {
-//                listener.objects = objects
+                listener.objectIdMap = objects.reduce(into: [String: T.BaseResultData](), { partialResult, object in
+                    partialResult.updateValue(object, forKey: "\(object.id)")
+                })
             }
         }
         if T.BaseResultData.self == BaseResultType.self {
             if let results = objects.applyFilters(listener.query.filters) as? [T.BaseResultData] {
-//                listener.objects = results
+                listener.objectIdMap = results.reduce(into: [String: T.BaseResultData](), { partialResult, object in
+                    partialResult.updateValue(object, forKey: "\(object.id)")
+                })
             }
         }
-        return MockListenerRegistration(onRemove:  { [weak self] in
-            // self?.activeListeners.removeAll(where: { $0 == listenerId })
-        })
+        return MockListenerRegistration(onRemove:  {})
     }
 }
 
