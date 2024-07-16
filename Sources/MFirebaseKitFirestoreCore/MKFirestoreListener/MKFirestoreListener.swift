@@ -144,12 +144,22 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
         guard let onAddedOrModifiedProcessor else { return }
         let finalModifiedObjects = modifiedObjects
         Task {
-            var resultsDict: [String: Query.BaseResultData?] = [:]
-            for object in finalModifiedObjects {
-                let updatedObject = await onAddedOrModifiedProcessor(object)
-                resultsDict.updateValue(updatedObject, forKey: "\(object.id)")
+            let resultsManager = ResultsManager()
+            
+            await withTaskGroup(of: (String, Query.BaseResultData?).self) { group in
+                for object in finalModifiedObjects {
+                    group.addTask {
+                        let updatedObject = await onAddedOrModifiedProcessor(object)
+                        return ("\(object.id)", updatedObject)
+                    }
+                }
+                
+                for await (key, updatedObject) in group {
+                    await resultsManager.updateResults(forKey: key, value: updatedObject)
+                }
             }
-            let finalResultsDict = resultsDict
+            
+            let finalResultsDict = await resultsManager.getResults()
             DispatchQueue.main.async {
                 for key in finalResultsDict.keys {
                     if self.objectIdMap.keys.contains(key) {
@@ -161,6 +171,18 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
                     }
                 }
             }
+        }
+    }
+    
+    actor ResultsManager {
+        private var resultsDict: [String: Query.BaseResultData?] = [:]
+
+        func updateResults(forKey key: String, value: Query.BaseResultData?) {
+            resultsDict.updateValue(value, forKey: key)
+        }
+
+        func getResults() -> [String: Query.BaseResultData?] {
+            return resultsDict
         }
     }
 }
