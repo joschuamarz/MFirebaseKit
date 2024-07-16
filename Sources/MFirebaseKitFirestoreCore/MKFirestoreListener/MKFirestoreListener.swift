@@ -48,6 +48,9 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
     @Published public var didFinishInitialLoad: Bool = false
     @Published public var objects: [Query.BaseResultData] = []
     @Published private var objectIdMap: [String: Query.BaseResultData] = [:]
+    public var flatObjects: [Query.BaseResultData] {
+        return objectIdMap.map { $0.value }
+    }
 
     public var query: Query
     private let firestore: MKFirestore
@@ -95,12 +98,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
     }
     
     public func getObject(by id: String) -> Query.BaseResultData? {
-        if let object = objectIdMap[id] {
-            return object
-        } else if let object = objects.first(where: { "\($0.id)" == id }) {
-            return object
-        }
-        return nil
+        return objectIdMap[id]
     }
 
     // MARK: - Error Handling
@@ -125,14 +123,17 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
         }
         
         guard let changes = changes else { return }
+        var modifiedObjects: [Query.BaseResultData] = []
         for change in changes {
             do {
                 let object = try change.object(as: Query.BaseResultData.self)
                 switch change.changeType {
                 case .added:
+                    modifiedObjects.append(object)
                     objects.append(object)
                     objectIdMap.updateValue(object, forKey: "\(object.id)")
                 case .modified:
+                    modifiedObjects.append(object)
                     if let index = objects.firstIndex(where: { $0.id == object.id }) {
                         objects[index] = object
                     }
@@ -147,6 +148,28 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
         }
         
         publishInitialLoading()
+        
+        // post-processing
+        let finalModifiedObjects = modifiedObjects
+        Task {
+            var resultsDict: [String: Query.BaseResultData?] = [:]
+            for object in finalModifiedObjects {
+                let updatedObject = await onAddedOrModifiedProcessor?(object)
+                resultsDict.updateValue(updatedObject, forKey: "\(object.id)")
+            }
+            let finalResultsDict = resultsDict
+            DispatchQueue.main.async {
+                for key in finalResultsDict.keys {
+                    if self.objectIdMap.keys.contains(key) {
+                        if let object = finalResultsDict[key], let object {
+                            self.objectIdMap.updateValue(object, forKey: key)
+                        } else {
+                            self.objectIdMap.removeValue(forKey: key)
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
