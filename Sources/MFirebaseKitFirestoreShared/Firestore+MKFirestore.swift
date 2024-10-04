@@ -6,7 +6,6 @@
 //
 
 import FirebaseFirestore
-import FirebaseFirestoreSwift
 import MFirebaseKitFirestoreCore
 
 extension MKFirestore {

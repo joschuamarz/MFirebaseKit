@@ -8,7 +8,6 @@
 import Foundation
 import MFirebaseKitFirestoreCore
 import FirebaseFirestore
-import FirebaseFirestoreSwift
 
 
 extension DocumentChange: MKDocumentChange {
