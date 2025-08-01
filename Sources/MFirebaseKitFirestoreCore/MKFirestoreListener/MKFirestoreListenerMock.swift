@@ -8,12 +8,15 @@
 import Foundation
 
 public class MKFirestoreListenerMock<BaseResultType: Codable & Identifiable>: MKFirestore {
+    
+    private var changeHandler: (([BaseResultType])->Void)?
+    
     private var objects: [BaseResultType] = [] {
         didSet {
             changeHandler?(objects)
         }
     }
-    private var changeHandler: (([BaseResultType])->Void)?
+
     public init(objects: [BaseResultType]) {
         self.objects = objects
     }

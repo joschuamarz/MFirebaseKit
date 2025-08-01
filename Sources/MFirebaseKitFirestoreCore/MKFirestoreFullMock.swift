@@ -8,12 +8,12 @@
 import Foundation
 
 public struct MKFirestoreFullMockData {
-    public let firestoreReference: MKFirestoreReference
-    public let data: [Any]
+    public let firestoreReference: MKFirestoreCollectionReference
+    public let data: [String: Any]
     
-    public init(firestoreReference: MKFirestoreReference, data: [any Codable & Identifiable]) {
+    public init(firestoreReference: MKFirestoreCollectionReference, data: [String: any Codable & Identifiable]) {
         self.firestoreReference = firestoreReference
-        self.data = data as [Any]
+        self.data = data as [String: Any]
     }
 }
 

@@ -5,7 +5,7 @@
 //  Created by Joschua Marz on 27.09.23.
 //
 
-public enum MKFirestoreError {
+public enum MKFirestoreError: Error {
     case firestoreError(String)
     case parsingError(Error)
     case internalError(String)
