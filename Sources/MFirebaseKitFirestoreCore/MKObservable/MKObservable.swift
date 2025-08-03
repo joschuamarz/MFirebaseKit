@@ -15,6 +15,8 @@ public protocol MKObserver: ObservableObject {
 open class MKObservableService: ObservableObject {
     var cancellables: [ObjectIdentifier: AnyCancellable] = [:]
     
+    public init() {}
+    
     public func register(observer: any MKObserver, debounce seconds: Double = 0) {
         let cancellable = self.objectWillChange
             .debounce(for: .seconds(seconds), scheduler: RunLoop.main)
