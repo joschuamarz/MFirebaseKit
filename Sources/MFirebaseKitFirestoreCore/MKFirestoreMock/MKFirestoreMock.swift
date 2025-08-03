@@ -42,7 +42,7 @@ open class MKFirestoreMock: MKFirestore {
      */
     public init() {}
     
-    func with(
+    public func with(
         initialData: [String: any (Codable & Identifiable)],
         for collectionReference: MKFirestoreCollectionReference
     ) -> Self {
