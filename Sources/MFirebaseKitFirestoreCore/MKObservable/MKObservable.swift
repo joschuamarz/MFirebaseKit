@@ -12,7 +12,7 @@ public protocol MKObserver: ObservableObject {
     var objectWillChange: ObservableObjectPublisher { get }
 }
 
-public class MKObservableService: ObservableObject {
+open class MKObservableService: ObservableObject {
     var cancellables: [ObjectIdentifier: AnyCancellable] = [:]
     
     public func register(observer: any MKObserver, debounce seconds: Double = 0) {
