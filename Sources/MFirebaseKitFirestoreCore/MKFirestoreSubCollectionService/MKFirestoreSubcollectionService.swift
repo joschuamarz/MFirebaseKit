@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 
-class MKFirestoreSubcollectionService<BaseResultType: Codable & Identifiable>: MKObservableService {
+public class MKFirestoreSubcollectionService<BaseResultType: Codable & Identifiable>: MKObservableService {
     
     let firestore: MKFirestore
     let baseCollectionReference: MKFirestoreCollectionReference

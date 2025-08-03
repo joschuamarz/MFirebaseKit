@@ -20,7 +20,7 @@ public typealias VoidHandler = () -> Void
 /// SwiftUI via `@Published`.
 ///
 /// - Note: This class is designed to work with Firestore via `MKFirestore` and uses Combine publishers.
-public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: ObservableObject, Identifiable {
+public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: MKObservableService, Identifiable {
     
     // MARK: - Typealiases
     
@@ -111,6 +111,7 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
         self.onAdded = onAdded
         self.onModified = onModified
         self.onRemoved = onRemoved
+        super.init()
     }
     
     /// Convenience initializer for when added and modified objects share the same handling logic.
