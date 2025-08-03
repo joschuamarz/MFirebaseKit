@@ -12,10 +12,10 @@ public protocol MKObserver: ObservableObject {
     var objectWillChange: ObservableObjectPublisher { get }
 }
 
-open class MKObservableService: ObservableObject {
+open class MKObservableService: NSObject, ObservableObject {
     var cancellables: [ObjectIdentifier: AnyCancellable] = [:]
     
-    public init() {}
+    public override init() {}
     
     public func register(observer: any MKObserver, debounce seconds: Double = 0) {
         let cancellable = self.objectWillChange
