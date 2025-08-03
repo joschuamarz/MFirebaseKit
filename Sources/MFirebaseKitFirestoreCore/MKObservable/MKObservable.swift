@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 
-public protocol MKObserver: ObservableObject, NSObject {
+public protocol MKObserver: ObservableObject {
     var objectWillChange: ObservableObjectPublisher { get }
 }
 

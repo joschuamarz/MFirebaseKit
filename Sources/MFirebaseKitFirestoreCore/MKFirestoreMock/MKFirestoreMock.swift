@@ -42,6 +42,14 @@ open class MKFirestoreMock: MKFirestore {
      */
     public init() {}
     
+    func with(
+        initialData: [String: any (Codable & Identifiable)],
+        for collectionReference: MKFirestoreCollectionReference
+    ) -> Self {
+        self.register(initialData: initialData, for: collectionReference)
+        return self
+    }
+    
     public func register(autoResponse: AutoResponse, for query: any MKFirestoreCollectionQuery) {
         collectionQueryAutoResponseMap[query.firestoreReference.rawPath] = autoResponse
     }
