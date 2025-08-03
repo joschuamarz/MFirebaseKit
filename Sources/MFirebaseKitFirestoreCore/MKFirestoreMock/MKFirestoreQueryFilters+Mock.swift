@@ -1,90 +1,11 @@
 //
-//  File.swift
-//  
+//  MKFirestoreQueryFilters+Mock.swift
+//  MFirebaseKit
 //
-//  Created by Joschua Marz on 05.03.24.
+//  Created by Joschua Marz on 03.08.25.
 //
 
 import Foundation
-
-public class MKFirestoreListenerMock<BaseResultType: Codable & Identifiable>: MKFirestore {
-    
-    private var changeHandler: (([BaseResultType])->Void)?
-    
-    private var objects: [BaseResultType] = [] {
-        didSet {
-            changeHandler?(objects)
-        }
-    }
-
-    public init(objects: [BaseResultType]) {
-        self.objects = objects
-    }
-    
-    public func executeCollectionQuery<T>(_ query: T) -> MKFirestoreCollectionQueryResponse<T> where T : MKFirestoreCollectionQuery {
-        
-        if T.BaseResultData.self == BaseResultType.self {
-            let results = objects.applyFilters(query.filters) as? [T.BaseResultData]
-            return .init(error: nil, responseData: results)
-        }
-        return .init(error: .internalError("MKFirestoreListenerMock"), responseData: nil)
-    }
-    
-    public func executeDocumentQuery<T>(_ query: T) -> MKFirestoreDocumentQueryResponse<T> where T : MKFirestoreDocumentQuery {
-        if T.ResultData.self == BaseResultType.self, let id = query.documentReference.leafId {
-            if let result = objects.applyFilters([.isEqualTo("id", id)]).first as? T.ResultData {
-                return .init(error: nil, responseData: result)
-            }
-        }
-        return .init(error: .internalError("MKFirestoreListenerMock"), responseData: nil)
-    }
-    
-    public func executeDeletion(_ deletion: MKFirestoreDocumentDeletion) -> MKFirestoreError? {
-        if let id = deletion.documentReference.leafId {
-            if let result = objects.applyFilters([.isEqualTo("id", id)]).first,
-               let index = objects.firstIndex(where: { $0.id == result.id }) {
-                objects.remove(at: index)
-                return nil
-            }
-        }
-        return .internalError("MKFirestoreListenerMock")
-    }
-    
-    public func executeMutation(_ mutation: MKFirestoreDocumentMutation) -> MKFirestoreMutationResponse {
-        guard let object = mutation.operation.object as? BaseResultType else {
-            return .init(documentId: nil, error: .internalError("MKFirestoreListenerMock"))
-        }
-        if let id = mutation.firestoreReference.leafId {
-            if let result = objects.applyFilters([.isEqualTo("id", id)]).first,
-               let index = objects.firstIndex(where: { $0.id == result.id }) {
-                objects[index] = object
-                return .init(documentId: "\(object.id)", error: nil)
-            } else if let object = mutation.operation.object as? BaseResultType {
-                objects.append(object)
-            }
-        }
-        return .init(documentId: nil, error: .internalError("MKFirestoreListenerMock"))
-    }
-    
-    public func addCollectionListener<T>(_ listener: MKFirestoreCollectionListener<T>) -> MKListenerRegistration where T : MKFirestoreCollectionQuery {
-        self.changeHandler = { objects in
-            if let objects = objects as? [T.BaseResultData] {
-                listener.objectIdMap = objects.reduce(into: [String: T.BaseResultData](), { partialResult, object in
-                    partialResult.updateValue(object, forKey: "\(object.id)")
-                })
-            }
-        }
-        if T.BaseResultData.self == BaseResultType.self {
-            if let results = objects.applyFilters(listener.query.filters) as? [T.BaseResultData] {
-                listener.objectIdMap = results.reduce(into: [String: T.BaseResultData](), { partialResult, object in
-                    partialResult.updateValue(object, forKey: "\(object.id)")
-                })
-            }
-        }
-        return MockListenerRegistration(onRemove:  {})
-    }
-}
-
 
 extension Array {
     func applyFilters(_ filters: [MKFirestoreQueryFilter]) -> Self {

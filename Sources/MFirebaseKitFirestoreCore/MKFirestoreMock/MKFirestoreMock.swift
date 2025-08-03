@@ -7,11 +7,13 @@
 
 import Foundation
 
-open class MKFirestoreMockAdvanced: MKFirestore {
+
+
+open class MKFirestoreMock: MKFirestore {
     public typealias ChangeHandler = () -> Void
 
     /// Maps collection paths to listeners
-    private var listeners: [String: [MockListenerRegistration]] = [:]
+    private var listeners: [String: [MKListenerRegistrationMock]] = [:]
     
     /// Maps collection paths to a collection.
     /// A collection consists of a map between documentId and objects
@@ -19,8 +21,15 @@ open class MKFirestoreMockAdvanced: MKFirestore {
     
     public enum AutoResponse {
         /// Responds with the mock results of the provided Query
-        case success
+        case successUsingMock
+        case success(data: [any (Codable & Identifiable)])
         case error(MKFirestoreError)
+    }
+    
+    public enum MockChangeType {
+        case modified(documentID: String, data: any (Codable & Identifiable))
+        case added(documentID: String, data: any (Codable & Identifiable))
+        case removed(documentID: String)
     }
     
     /// Maps between a document path and the auto response
@@ -29,50 +38,45 @@ open class MKFirestoreMockAdvanced: MKFirestore {
     private var collectionQueryAutoResponseMap: [String: AutoResponse] = [:]
 
     /**
-     Initializes a Firestore mock with the ability to provide initial data per collection.
+     Initializes a Firestore mock.
      */
-    public init(mockData: [MKFirestoreFullMockData] = []) {
-        for entry in mockData {
-            let path = entry.firestoreReference.leafCollectionPath
-            if var existing = objects[path] {
-                // Merge new objects with exsiting ones in the same collection
-                existing.merge(entry.data) { old, new in
-                    // If a documentID already exists, we override it with the new object
-                    return new
-                }
-                objects[path] = existing
-            } else {
-                // Define objects at path
-                objects[path] = entry.data
-            }
-        }
-        // notify listeners about added objects
-        for collectionPath in objects.keys {
-            if let collectionObjects = objects[collectionPath]?.values {
-            let documentChanges = collectionObjects.map({ MKDocumentChangeMock(changeType: .added, object: $0) })
-                notifyListeners(for: collectionPath, with: documentChanges)
-            }
-        }
+    public init() {}
+    
+    public func register(autoResponse: AutoResponse, for query: any MKFirestoreCollectionQuery) {
+        collectionQueryAutoResponseMap[query.firestoreReference.rawPath] = autoResponse
     }
     
-    public convenience init(autoResponse: AutoResponse, for query: any MKFirestoreCollectionQuery) {
-        collectionQueryAutoResponseMap = [query.firestoreReference.rawPath: autoResponse]
+    public func register(autoResponse: AutoResponse, for collectionReference: MKFirestoreCollectionReference) {
+        collectionQueryAutoResponseMap[collectionReference.rawPath] = autoResponse
+    }
+    
+    public func register(initialData: [String: any (Codable & Identifiable)], for collectionReference: MKFirestoreCollectionReference) {
+        objects[collectionReference.rawPath] = initialData as [String: Any]
+    }
+    
+    public func simulateChange(
+        for collectionReference: MKFirestoreCollectionReference,
+        changeType: MockChangeType
+    ) {
+        switch changeType {
+        case .modified(let documentID, let data), .added(let documentID, let data):
+            self.writeObject(collectionPath: collectionReference.rawPath, documentId: documentID, object: data)
+        case .removed(let documentID):
+            self.removeObject(collectionPath: collectionReference.rawPath, documentId: documentID)
+        }
     }
     
     public convenience init(autoResponse: AutoResponse, for query: any MKFirestoreDocumentQuery) {
+        self.init()
         documentQueryAutoResponseMap = [query.firestoreReference.rawPath: autoResponse]
     }
     
     open func executeCollectionQuery<T>(_ query: T) -> MKFirestoreCollectionQueryResponse<T> where T: MKFirestoreCollectionQuery {
-        
+        log(query)
         // Check if an auto-response has been registered
-        if let autoResponse = collectionQueryAutoResponseMap[query.firestoreReference.rawPath] {
-            switch autoResponse {
-            case .success:
-                return .init(error: nil, responseData: query.mockResultData)
-            case .error(let error):
-                return .init(error: error, responseData: nil)
-            }
+        if let autoResponse = makeCollectionAutoResponse(for: query) {
+            log(autoResponse, for: query.firestoreReference)
+            return autoResponse
         }
         
         // Get document id map for given firestore path
@@ -82,23 +86,19 @@ open class MKFirestoreMockAdvanced: MKFirestore {
         // Apply filters
         let filteredResults = objects?.applyFilters(query.filters)
         // Return results
-        return .init(error: nil, responseData: filteredResults)
+        let response = MKFirestoreCollectionQueryResponse<T>(error: nil, responseData: filteredResults)
+        log(response, for: query.firestoreReference)
+        return response
     }
 
     open func executeDocumentQuery<T>(_ query: T) -> MKFirestoreDocumentQueryResponse<T> where T: MKFirestoreDocumentQuery {
-        
+        log(query)
         // Check if an auto-response has been registered
-        if let autoResponse = documentQueryAutoResponseMap[query.firestoreReference.rawPath] {
-            switch autoResponse {
-            case .success:
-                return .init(error: nil, responseData: query.mockResultData)
-            case .error(let error):
-                return .init(error: error, responseData: nil)
-            }
+        if let autoResponse = makeDocumentAutoResponse(for: query) {
+            log(autoResponse, for: query.firestoreReference)
+            return autoResponse
         }
         
-        // Get referenced collection Id
-        let collectionId = query.documentReference.leafCollectionPath
         // Get required document id
         guard let documentId = query.documentReference.leafId else {
             return .init(error: .firestoreError("No document id provided"), responseData: nil)
@@ -109,7 +109,9 @@ open class MKFirestoreMockAdvanced: MKFirestore {
         // Try to get object at given document id
         let object = documentIdMap?[documentId]
         
-        return .init(error: nil, responseData: object)
+        let response = MKFirestoreDocumentQueryResponse<T>(error: nil, responseData: object)
+        log(response, for: query.firestoreReference)
+        return response
     }
 
     open func executeDeletion(_ deletion: MKFirestoreDocumentDeletion) -> MKFirestoreError? {
@@ -121,16 +123,22 @@ open class MKFirestoreMockAdvanced: MKFirestore {
         }
         // Remove object in collection with document id
         removeObject(collectionPath: collectionPath, documentId: documentId)
+        log(deletion)
         return nil
     }
 
     open func executeMutation(_ mutation: MKFirestoreDocumentMutation) -> MKFirestoreMutationResponse {
+        log(mutation)
+        let response: MKFirestoreMutationResponse
         if let documentReference = mutation.firestoreReference as? MKFirestoreDocumentReference {
-            return handleDocumentMutation(reference: documentReference, operation: mutation.operation)
+            response = handleDocumentMutation(reference: documentReference, operation: mutation.operation)
         } else if let collectionReference = mutation.firestoreReference as? MKFirestoreCollectionReference {
-            
+            response = handleCollectionMutation(reference: collectionReference, operation: mutation.operation)
+        } else {
+            response = .init(documentId: nil, error: .internalError("Unknown firestore reference"))
         }
-        return .init(documentId: nil, error: .internalError("Unknown firestore reference"))
+        log(response, for: mutation.firestoreReference)
+        return response
     }
     
     private func handleDocumentMutation(reference: MKFirestoreDocumentReference, operation: MKFirestoreMutationOperation) -> MKFirestoreMutationResponse {
@@ -159,7 +167,7 @@ open class MKFirestoreMockAdvanced: MKFirestore {
         // Get collection path
         let collectionPath = listener.query.collectionReference.leafCollectionPath
         
-        let registration = MockListenerRegistration(
+        let registration = MKListenerRegistrationMock(
             id: listener.id,
             onChange: { documentChanges in
                 // filter relevant changes
@@ -173,7 +181,10 @@ open class MKFirestoreMockAdvanced: MKFirestore {
                 }
                 // Only notify listener if changes are not empty
                 guard !relevantChanges.isEmpty else { return }
-                listener.handle(relevantChanges, error: nil, for: listener.query)
+                DispatchQueue.main.async {
+                    listener.handle(relevantChanges, error: nil, for: listener.query)
+                    self.logListenerChange(for: listener)
+                }
             },
             onRemove: { [weak self] in
                 guard let self else { return }
@@ -194,24 +205,51 @@ open class MKFirestoreMockAdvanced: MKFirestore {
             // Only register listener if it isn't registered yet
             listeners[collectionPath]?.append(registration)
         }
+        
+        // Notify listener with initial objects
+        if let initialObjects = objects[collectionPath] {
+            // make this MKDocumentChangeMock(changeType: .added, object: $0.value, documentID: $0.key)
+            let documentChanges = initialObjects.compactMap {
+                MKDocumentChangeMock(
+                    changeType: .added,
+                    object: $0.value,
+                    documentID: $0.key
+                )
+            }
+            // handle initial changes
+            registration.onChange(documentChanges)
+        }
+        
         return registration
     }
     
     private func writeObject(collectionPath: String, documentId: String, object: Any) {
-        // check if object exists
-        let didExist = objects[collectionPath]?[documentId] != nil
-        // write object
-        objects[collectionPath]?[documentId] = object
-        // make document change
-        let documentChange = MKDocumentChangeMock(changeType: didExist ? .modified : .added, object: object)
-        notifyListeners(for: collectionPath, with: [documentChange])
+        DispatchQueue.main.async {
+            // check if object exists
+            let didExist = self.objects[collectionPath]?[documentId] != nil
+            // write object
+            self.objects[collectionPath]?[documentId] = object
+            // make document change
+            let documentChange = MKDocumentChangeMock(
+                changeType: didExist ? .modified : .added,
+                object: object,
+                documentID: documentId
+            )
+            self.notifyListeners(for: collectionPath, with: [documentChange])
+        }
     }
     
     private func removeObject(collectionPath: String, documentId: String) {
-        // Remove object if exists
-        guard let object = objects[collectionPath]?.removeValue(forKey: documentId) else { return }
-        let documentChange = MKDocumentChangeMock(changeType: .removed, object: object)
-        notifyListeners(for: collectionPath, with: [documentChange])
+        DispatchQueue.main.async {
+            // Remove object if exists
+            guard let object = self.objects[collectionPath]?.removeValue(forKey: documentId) else { return }
+            let documentChange = MKDocumentChangeMock(
+                changeType: .removed,
+                object: object,
+                documentID: documentId
+            )
+            self.notifyListeners(for: collectionPath, with: [documentChange])
+        }
     }
     
     private func notifyListeners(for collectionPath: String, with documentChanges: [MKDocumentChange]) {
@@ -221,6 +259,75 @@ open class MKFirestoreMockAdvanced: MKFirestore {
         for listener in relevantListeners {
             listener.onChange(documentChanges)
         }
+    }
+    
+    
+    private func makeCollectionAutoResponse<T: MKFirestoreCollectionQuery>(
+        for query: T
+    ) -> MKFirestoreCollectionQueryResponse<T>?  {
+        guard let autoResponse = collectionQueryAutoResponseMap[query.firestoreReference.rawPath] else {
+            return nil
+        }
+    
+        switch autoResponse {
+        case .successUsingMock:
+            return .init(error: nil, responseData: query.mockResultData)
+        case .success(let data):
+            if let data = data as? [T.BaseResultData] {
+                return .init(error: nil, responseData: data)
+            } else {
+                return .init(error: nil, responseData: query.mockResultData)
+            }
+        case .error(let error):
+            return .init(error: error, responseData: nil)
+        }
+    }
+    
+    
+    private func makeDocumentAutoResponse<T: MKFirestoreDocumentQuery>(
+        for query: T
+    ) -> MKFirestoreDocumentQueryResponse<T>?  {
+        guard let autoResponse = collectionQueryAutoResponseMap[query.firestoreReference.rawPath] else {
+            return nil
+        }
+        
+        switch autoResponse {
+        case .successUsingMock:
+            return .init(error: nil, responseData: query.mockResultData)
+        case .success(let data):
+            if let data = data as? [T.ResultData] {
+                return .init(error: nil, responseData: data.first)
+            } else {
+                return .init(error: nil, responseData: query.mockResultData)
+            }
+        case .error(let error):
+            return .init(error: error, responseData: nil)
+        }
+    }
+    
+    // MARK: - Logging
+    open func log(_ query: MKFirestoreQuery) {
+        print("$ MKFirestoreFullMockDebug: \(query.executionLogMessage) ")
+    }
+    
+    open func log(_ response: MKFirestoreMutationResponse, for firestoreReference: MKFirestoreReference) {
+        print("$ MKFirestoreFullMockDebug: \(response.responseLogMessage) ")
+    }
+    
+    open func log<Q: MKFirestoreDocumentQuery>(_ response: MKFirestoreDocumentQueryResponse<Q>, for firestoreReference: MKFirestoreReference) {
+        print("$ MKFirestoreFullMockDebug: \(response.responseLogMessage) ")
+    }
+    
+    open func log<Q: MKFirestoreCollectionQuery>(_ response: MKFirestoreCollectionQueryResponse<Q>, for firestoreReference: MKFirestoreReference) {
+        print("$ MKFirestoreFullMockDebug: \(response.responseLogMessage) ")
+    }
+    
+    open func log(_ deletion: MKFirestoreDocumentDeletion) {
+        print("$ MKFirestoreFullMockDebug:  \(deletion.executionLogMessage) ")
+    }
+    
+    open func logListenerChange<T: MKFirestoreCollectionQuery>(for listener: MKFirestoreCollectionListener<T>) {
+        print("$ MKFirestoreFullMockDebug: Listener \(listener.id) did change with \(listener.objects.count) objects")
     }
 }
 
@@ -244,10 +351,10 @@ extension Array where Element: Codable {
             return mirror.children.contains { $0.label == fieldName && ("\($0.value)" == "\(value)") }
         }
     }
-}    
+}
 
 // Helper registration
-public final class MockListenerRegistration: MKListenerRegistration {
+public final class MKListenerRegistrationMock: MKListenerRegistration {
     public let id: String
     public let onChange: ([MKDocumentChange]) -> Void
     public let onRemove: () -> Void
@@ -263,14 +370,5 @@ public final class MockListenerRegistration: MKListenerRegistration {
     }
 }
 
-struct MKDocumentChangeMock: MKDocumentChange {
-    let changeType: MKDocumentChangeType
-    let object: Any
-    
-    func object<T>(as type: T.Type) throws -> T where T : Decodable {
-        guard let object = object as? T else {
-            throw MKFirestoreError.internalError("MKDocumentChangeMock: Object does not match expected type \(type)")
-        }
-        return object
-    }
-}
+
+

@@ -7,225 +7,249 @@
 
 import XCTest
 import MFirebaseKitFirestoreCore
+import MFirebaseKitFirestoreDebug
 
 final class MKFirestoreCollectionListenerTest: XCTestCase {
     
-    struct TestResultData: Codable, Identifiable, Equatable {
-        let id: String
-        var name: String
-    }
-    
-    struct TestCollectionQuery: MKFirestoreCollectionQuery {
-        typealias BaseResultData = TestResultData
-        
-        var collectionReference: MKFirestoreCollectionReference = .collection("Test")
-        
-        var orderDescriptor: OrderDescriptor? = nil
-        var limit: Int? = nil
-        var filters: [MKFirestoreQueryFilter] = []
+    let collectionReference = MKFirestoreCollectionReference.collection("SomeCollection")
 
-        var mockResultData: [MKFirestoreCollectionListenerTest.TestResultData] = [
-            .init(id: "1", name: "Test 1"),
-            .init(id: "2", name: "Test 2")
+    func testListenerReceivesUpdates() async {
+        let firestore = MKFirestoreMockDebug()
+
+        // Define initial mock data
+        let initialData: [String: MockResultData] = [
+            "1": MockResultData(name: "Item 1"),
+            "2": MockResultData(name: "Item 2")
         ]
-    }
-    
-    let query: TestCollectionQuery = TestCollectionQuery()
-    
-    // MARK: - Setup
-    
-    func testListener_Setup() {
-        let listener = MKFirestoreCollectionListener(
-            query: query, 
-            firestore: MKFirestoreMock()
-        )
-        XCTAssertFalse(listener.isListening)
-        // start listening
-        listener.startListening()
-        XCTAssertTrue(listener.isListening)
-        // handle new item
-        let newItem = TestResultData(id: "10", name: "Test 10")
-//        listener.onAdded(newItem)
-        XCTAssertEqual(listener.objects.count, 1)
-        // stop listening - removes all items
-        listener.stopListening()
-        XCTAssertFalse(listener.isListening)
-        XCTAssertEqual(listener.objects.count, 0)
-        // does not handle events when disabled
-    //    listener.onAdded(newItem)
-        XCTAssertEqual(listener.objects.count, 0)
-    }
-    
-    // MARK: - Add
 
-    func testListener_OnAdded() {
-        let listener = MKFirestoreCollectionListener(
-            query: query,
-            firestore: MKFirestoreMock()
+        // Set up the expectation for the listener registration
+        let listenerExpectation = MKFirestoreExpectation(
+            firestoreReference: collectionReference,
+            type: .listener
         )
-        listener.startListening()
-        // Add first item
-        let newItem = TestResultData(id: "10", name: "Test 10")
-//        listener.onAdded(newItem)
-        // Expect item to be added
-        XCTAssertEqual(listener.objects.count, 1)
-        XCTAssertEqual(listener.objects.last, newItem)
-    }
-    
-    func testListener_OnAdded_AdditionalHandler() {
-        let listener = MKFirestoreCollectionListener(
-            query: query,
-            firestore: MKFirestoreMock())
-        listener.startListening()
-        // Add first item
-        let newItem = TestResultData(id: "10", name: "Test 10")
-//        listener.onAdded(newItem)
-        // Item should be added with modified name
-        XCTAssertEqual(listener.objects.count, 1)
-        XCTAssertNotEqual(listener.objects.last, newItem)
-        XCTAssertEqual(listener.objects.last?.name, "Test Modified")
-    }
-    
-    func testListener_OnAdded_AdditionalHandler_excludesItems() {
-        let listener = MKFirestoreCollectionListener(
-            query: query,
-            firestore: MKFirestoreMock())
-        listener.startListening()
-        // Add first item
-        let newItem = TestResultData(id: "10", name: "Test 10")
-//        listener.onAdded(newItem)
-        // Item should be added
-        XCTAssertEqual(listener.objects.count, 1)
-        XCTAssertEqual(listener.objects.last, newItem)
-        // Item should be catched by filter
-        let newItem2 = TestResultData(id: "11", name: "Test 11")
-        XCTAssertEqual(listener.objects.count, 1)
-        XCTAssertEqual(listener.objects.last, newItem)
-    }
-    
-    // MARK: - Modify
 
-    func testListener_OnModified_itemExists() {
-        let listener = MKFirestoreCollectionListener(
-            query: query,
-            firestore: MKFirestoreMock()
+        // Register initial data for this collection
+        firestore.register(
+            initialData: initialData,
+            for: collectionReference
         )
-        listener.startListening()
-        // Add first item
-        let newItem = TestResultData(id: "10", name: "Test 10")
-//        listener.onAdded(newItem)
-        // Modify item with same id
-        let modifiedItem = TestResultData(id: "10", name: "Test 10 Modified")
-//        listener.onModified(modifiedItem)
-        // Item should be updated
-        XCTAssertEqual(listener.objects.count, 1)
-        XCTAssertEqual(listener.objects.last, modifiedItem)
-    }
-    
-    func testListener_OnModified_itemNotExists() {
-        let listener = MKFirestoreCollectionListener(
-            query: query,
-            firestore: MKFirestoreMock()
-        )
-        listener.startListening()
-        // Add first item
-        let newItem = TestResultData(id: "10", name: "Test 10")
-//        listener.onAdded(newItem)
-        // Modify item with different id
-        let modifiedItem = TestResultData(id: "11", name: "Test 10 Modified")
-//        listener.onModified(modifiedItem)
-        // Item should be added
-        XCTAssertEqual(listener.objects.count, 2)
-        XCTAssertEqual(listener.objects.last, modifiedItem)
-    }
-    
-    func testListener_OnModified_AdditionalHandler() {
-        let listener = MKFirestoreCollectionListener(
-            query: query,
-            firestore: MKFirestoreMock())
-        listener.startListening()
-        // Add first item
-        let newItem = TestResultData(id: "10", name: "Test 10")
-//        listener.onAdded(newItem)
-        let modifiedItem = TestResultData(id: "10", name: "Test 10 Modified")
-//        listener.onModified(modifiedItem)
-        XCTAssertEqual(listener.objects.count, 1)
-        XCTAssertNotEqual(listener.objects.last, newItem)
-        XCTAssertEqual(listener.objects.last?.name, "Test 10 Modified Again")
-    }
-    
-    // MARK: - Remove
-    
-    func testListener_OnRemoved_itemExists() {
-        let listener = MKFirestoreCollectionListener(
-            query: query,
-            firestore: MKFirestoreMock()
-        )
-        listener.startListening()
-        // Add first item
-        let newItem = TestResultData(id: "10", name: "Test 10")
-//        listener.onAdded(newItem)
-        // Remove same item
-//        listener.onRemoved(newItem)
-        // Item should be updated
-        XCTAssertEqual(listener.objects.count, 0)
-    }
-    
-    func testListener_OnRemoved_itemNotExists() {
-        let listener = MKFirestoreCollectionListener(
-            query: query,
-            firestore: MKFirestoreMock()
-        )
-        listener.startListening()
-        // Add first item
-        let newItem = TestResultData(id: "10", name: "Test 10")
-//        listener.onAdded(newItem)
-        // Remove item with different id
-        let removedItem = TestResultData(id: "11", name: "Test 11")
-//        listener.onRemoved(removedItem)
-        // Nothing should change
-        XCTAssertEqual(listener.objects.count, 1)
-        XCTAssertEqual(listener.objects.last, newItem)
-    }
-    
-    // MARK: - Mocked Changes
-    
-    func testMockedChanges() {
-        var addActionCounter = 0
-        var removeActionCounter = 0
-        let firstAdd = XCTestExpectation(description: "First item added")
-        let secondAdd = XCTestExpectation(description: "Second item added")
-        let firstRemoval = XCTestExpectation(description: "First item removed")
-        let secondRemoval = XCTestExpectation(description: "First item removed")
-        let firstReAdd = XCTestExpectation(description: "First item re-added")
-        let secondReAdd = XCTestExpectation(description: "Second item re-added")
-        
-        let listener = MKFirestoreCollectionListener(
-            query: query,
-            firestore: MKFirestoreMock(listenerMockMode: .auto)
-        )
-        listener.startListening()
-        
-        wait(for: [
-            firstAdd,
-            secondAdd
-        ], timeout: 5)
-        
-        XCTAssertEqual(listener.objects.count, 2)
-        
-        wait(for: [
-            firstRemoval,
-            secondRemoval
-        ], timeout: 5)
-        
-        XCTAssertEqual(listener.objects.count, 0)
 
-        wait(for: [
-            firstReAdd,
-            secondReAdd
-        ], timeout: 5)
-        
-        XCTAssertEqual(listener.objects.count, 2)
-        listener.stopListening()
+        firestore.expectations = [listenerExpectation]
+
+        // Track change notification
+        let dataChangedExpectation = XCTestExpectation(description: "Data updated via listener")
+
+        // Create listener
+        let query = MockCollectionQuery(collectionReference: collectionReference)
+        let listener = MKFirestoreCollectionListener(query: query, firestore: firestore)
+
+        listener.onAdded = { _ in
+            dataChangedExpectation.fulfill()
+        }
+
+        // Start listening
+        listener.startListening()
+
+        // Wait for the mock listener to trigger the callback
+        await fulfillment(of: [listenerExpectation, dataChangedExpectation], timeout: 5)
+
+        // Validate received data
+        let receivedData = listener.objects.sorted { $0.id < $1.id }
+        let expectedData = initialData.map { $0.value }.sorted { $0.id < $1.id }
+        XCTAssertEqual(receivedData, expectedData)
     }
+    
+    func testMultipleStartListeningDoesNotDuplicateCallbacks() async {
+        let firestore = MKFirestoreMockDebug()
+        
+        let initialData: [String: MockResultData] = [
+            "1": MockResultData(name: "Item 1")
+        ]
+        
+        let listenerExpectation = MKFirestoreExpectation(
+            firestoreReference: collectionReference,
+            type: .listener
+        )
+        
+        firestore.register(initialData: initialData, for: collectionReference)
+        firestore.expectations = [listenerExpectation]
+
+        let query = MockCollectionQuery(collectionReference: collectionReference)
+        let listener = MKFirestoreCollectionListener(query: query, firestore: firestore)
+
+        var receivedCount = 0
+        let dataChangedExpectation = XCTestExpectation(description: "Data updated via listener")
+        dataChangedExpectation.expectedFulfillmentCount = 1
+
+        listener.onAdded = { _ in
+            receivedCount += 1
+            dataChangedExpectation.fulfill()
+        }
+
+        listener.startListening()
+        listener.startListening() // should not double-register
+
+        await fulfillment(of: [listenerExpectation, dataChangedExpectation], timeout: 5)
+        XCTAssertEqual(receivedCount, 1)
+    }
+    
+    /// Tests that updates to existing documents trigger `onModified` and overwrite existing data.
+    func testListenerReceivesModifications() async {
+        let firestore = MKFirestoreMockDebug()
+        
+        let original = MockResultData(name: "Original")
+        let updated = MockResultData(id: original.id, name: "Updated")
+        
+        let initialData: [String: MockResultData] = [original.id: original]
+        
+        // Register original data and expect a listener
+        firestore.register(initialData: initialData, for: collectionReference)
+        firestore.expectations = [
+            MKFirestoreExpectation(firestoreReference: collectionReference, type: .listener)
+        ]
+        
+        let modificationExpectation = XCTestExpectation(description: "Item modified via listener")
+        
+        let query = MockCollectionQuery(collectionReference: collectionReference)
+        let listener = MKFirestoreCollectionListener(query: query, firestore: firestore)
+        
+        // Listener should detect the modification
+        listener.onModified = { item in
+            if item.name == "Updated" {
+                modificationExpectation.fulfill()
+            }
+        }
+        
+        listener.startListening()
+        
+        // Simulate the document modification
+        firestore.simulateChange(
+            for: collectionReference,
+            changeType: .modified(documentID: original.id, data: updated)
+        )
+        
+        // Wait for listener to be ready and receive modification
+        await fulfillment(of: firestore.expectations + [modificationExpectation], timeout: 5)
+        
+        // Check if listener updated the stored object correctly
+        XCTAssertEqual(listener.objects, [updated])
+    }
+    
+    /// Tests that the listener correctly handles multiple concurrent updates to the same collection.
+    func testConcurrentListenerUsage() async {
+        let firestore = MKFirestoreMockDebug()
+        
+        // 5 separate batches of mock data for different updates
+        let mockBatches: [[String: MockResultData]] = (0..<5).map { batch in
+            [
+                UUID().uuidString: MockResultData(name: "Batch \(batch) - A"),
+                UUID().uuidString: MockResultData(name: "Batch \(batch) - B")
+            ]
+        }
+        
+        // Expectation: listener is set up once
+        let listenerExpectation = MKFirestoreExpectation(
+            firestoreReference: collectionReference,
+            type: .listener
+        )
+        firestore.expectations = [listenerExpectation]
+        
+        let query = MockCollectionQuery(collectionReference: collectionReference)
+        let listener = MKFirestoreCollectionListener(query: query, firestore: firestore)
+        
+        // Expectation: all batches will trigger `onAdded` calls
+        let totalExpectedAdds = mockBatches.reduce(0) { $0 + $1.count }
+        let dataChangedExpectation = XCTestExpectation(description: "All data added via listener")
+        dataChangedExpectation.expectedFulfillmentCount = totalExpectedAdds
+        
+        // Fulfill on each added document
+        listener.onAdded = { _ in
+            dataChangedExpectation.fulfill()
+        }
+        
+        listener.startListening()
+        
+        // Concurrently simulate changes from different async tasks
+        await withTaskGroup(of: Void.self) { group in
+            for batch in mockBatches {
+                group.addTask {
+                    for (id, item) in batch {
+                        firestore.simulateChange(
+                            for: self.collectionReference,
+                            changeType: .added(documentID: id, data: item)
+                        )
+                    }
+                }
+            }
+        }
+        
+        // Wait for all simulated adds to complete
+        await fulfillment(of: [listenerExpectation, dataChangedExpectation], timeout: 5)
+        
+        // Ensure all added items are now in the listener’s data
+        let expected = mockBatches.flatMap { $0.values }.sorted(by: { $0.id < $1.id })
+        let actual = listener.objects.sorted(by: { $0.id < $1.id })
+        XCTAssertEqual(expected, actual)
+    }
+    
+    /// Tests that the listener receives `onRemoved` events correctly.
+    func testListenerReceivesRemovals() async {
+        let firestore = MKFirestoreMockDebug()
+        
+        // Initial data with two documents
+        let initialData: [String: MockResultData] = [
+            "1": MockResultData(name: "Item 1"),
+            "2": MockResultData(name: "Item 2")
+        ]
+        
+        // Expectation for listener setup
+        let listenerExpectation = MKFirestoreExpectation(
+            firestoreReference: collectionReference,
+            type: .listener
+        )
+        
+        // Register the initial data to the mock Firestore
+        firestore.register(initialData: initialData, for: collectionReference)
+        firestore.expectations = [listenerExpectation]
+        
+        // Expect that one document will be removed
+        let removedExpectation = XCTestExpectation(description: "Item removed via listener")
+        
+        let query = MockCollectionQuery(collectionReference: collectionReference)
+        let listener = MKFirestoreCollectionListener(query: query, firestore: firestore)
+        
+        listener.onRemoved = { _ in
+            removedExpectation.fulfill()
+        }
+        
+        // Start listening for changes
+        listener.startListening()
+        
+        // Simulate document removal
+        firestore.simulateChange(
+            for: collectionReference,
+            changeType: .removed(documentID: "1")
+        )
+        
+        // Wait for both registration and removal callback
+        await fulfillment(of: [listenerExpectation, removedExpectation], timeout: 5)
+        
+        // Ensure only the remaining item is present
+        let receivedData = listener.objects
+        XCTAssertEqual(receivedData, [initialData["2"]!])
+    }
+}
+
+struct MockCollectionQuery: MKFirestoreCollectionQuery {
+    
+    init(collectionReference: MFirebaseKitFirestoreCore.MKFirestoreCollectionReference) {
+        self.collectionReference = collectionReference
+    }
+    
+    var collectionReference: MFirebaseKitFirestoreCore.MKFirestoreCollectionReference
+    
+    var mockResultData: [MockResultData] = []
+    var orderDescriptor: MFirebaseKitFirestoreCore.OrderDescriptor? = nil
+    var limit: Int? = nil
+    var filters: [MFirebaseKitFirestoreCore.MKFirestoreQueryFilter] = []
 }

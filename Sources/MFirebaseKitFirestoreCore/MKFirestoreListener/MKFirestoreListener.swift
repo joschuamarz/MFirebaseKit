@@ -10,79 +10,150 @@ import Combine
 
 public typealias VoidHandler = () -> Void
 
-public enum MKDocumentChangeType {
-    case added, modified, removed
-}
-public protocol MKDocumentChange {
-    var changeType: MKDocumentChangeType { get }
-    func object<T: Decodable>(as type: T.Type) throws -> T
-}
 
-protocol FirestoreExecutor {
-    func run(_ operation: @escaping @Sendable () async -> Void)
-}
-
+/// A generic class that listens to a Firestore collection using the provided query,
+/// decoding document changes into typed Swift objects and publishing updates.
+///
+/// `MKFirestoreCollectionListener` observes real-time updates from Firestore and
+/// exposes lifecycle callbacks as well as a published map of decoded documents.
+/// It's designed to be reused with different queries and integrates easily into
+/// SwiftUI via `@Published`.
+///
+/// - Note: This class is designed to work with Firestore via `MKFirestore` and uses Combine publishers.
 public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: ObservableObject, Identifiable {
-    public typealias AdditionalChangeHandler = (Query.BaseResultData) async -> Query.BaseResultData?
-    public typealias ErrorHandler = (Error) -> Void
-    public typealias AddedOrModifiedProcessor = (Query.BaseResultData) async -> Query.BaseResultData?
-
-    public let id: String = UUID().uuidString
     
-    private var listenerRegistration: MKListenerRegistration?
+    // MARK: - Typealiases
+    
+    /// A closure that handles errors emitted during listening or decoding.
+    public typealias ErrorHandler = (Error) -> Void
+    
+    /// A closure that receives a decoded object after it's added, modified, or removed.
+    public typealias ChangeHandler = (Query.BaseResultData) -> Void
+
+    // MARK: - Public Properties
+    
+    /// Uniquely identifies this listener instance.
+    public let id: String = UUID().uuidString
+
+    /// Indicates whether the listener is currently registered to a Firestore collection.
     public var isListening: Bool { listenerRegistration != nil }
     
-    private let firestore: MKFirestore
-
+    /// Whether the initial data load for the query has completed.
+    ///
+    /// This becomes `true` once the first snapshot has been processed.
     @Published public var didFinishInitialLoad: Bool = false
     
-    @Published var objectIdMap: [String: Query.BaseResultData] = [:]
-   
+    /// A dictionary mapping document IDs to their decoded Swift objects.
+    ///
+    /// - Note: This property is published and read-only externally.
+    @Published private(set) public var objectIdMap: [String: Query.BaseResultData] = [:]
+    
+    /// An array of all decoded objects in the collection.
     public var objects: [Query.BaseResultData] {
         return objectIdMap.map { $0.value }
     }
 
+    /// The current query associated with this listener.
     public var query: Query
 
-    // Handlers
+    /// A closure called once the initial snapshot from Firestore has been processed.
     public var onDidFinishInitialLoading: (() -> Void)?
-    public var onErrorHandler: ErrorHandler?
-    public var onAddedOrModifiedProcessor: AddedOrModifiedProcessor?
     
-    private let updateHandler: any MKFirestoreCollectionListenerUpdateHandlerProtocol
+    /// A closure called whenever an error occurs during listening or decoding.
+    public var onError: ErrorHandler?
+    
+    /// A closure called when a new object is added to the collection.
+    public var onAdded: ChangeHandler?
+    
+    /// A closure called when an existing object is modified in the collection.
+    public var onModified: ChangeHandler?
+    
+    /// A closure called when an object is removed from the collection.
+    public var onRemoved: ChangeHandler?
 
-    private var isMockedListener: Bool {
-        return firestore is MKFirestoreMock
-        || firestore is MKFirestoreListenerMock<Query.BaseResultData>
-        || firestore is MKFirestoreFullMock
-    }
+    // MARK: - Private Properties
+    
+    /// The active Firestore listener registration.
+    ///
+    /// This is non-nil only while listening to a collection.
+    private var listenerRegistration: MKListenerRegistration?
+    
+    /// A reference to the Firestore abstraction responsible for executing queries.
+    private let firestore: MKFirestore
 
-    // MARK: - Init
+    // MARK: - Initializers
+    
+    /// Initializes a new collection listener with full lifecycle callbacks.
+    ///
+    /// - Parameters:
+    ///  - query: The query describing which collection to observe.
+    ///  - firestore: The Firestore wrapper responsible for executing the query.
+    ///  - onDidFinishInitialLoading: A closure called after the initial snapshot is loaded.
+    ///  - onError: A closure called on error.
+    ///  - onAdded: A closure called when a new object is added.
+    ///  - onModified: A closure called when an object is modified.
+    ///  - onRemoved: A closure called when an object is removed.
+    ///
+    ///  - Important: Does not automatically start listening to the provided query unless ``startListening()`` is called.
     public init(
         query: Query,
         firestore: MKFirestore,
-        onDidFinishInitialLoading: (() -> Void)? = nil,
-        onAddedOrModifiedProcessor: AddedOrModifiedProcessor? = nil,
-        onErrorHandler: ErrorHandler? = nil
+        onDidFinishInitialLoading: VoidHandler? = nil,
+        onError: ErrorHandler? = nil,
+        onAdded: ChangeHandler? = nil,
+        onModified: ChangeHandler? = nil,
+        onRemoved: ChangeHandler? = nil
     ) {
         self.query = query
         self.firestore = firestore
         self.onDidFinishInitialLoading = onDidFinishInitialLoading
-        self.onAddedOrModifiedProcessor = onAddedOrModifiedProcessor
-        self.onErrorHandler = onErrorHandler
-        if isMockedListener {
-            self.updateHandler = MKFirestoreCollectionListenerUpdateHandlerMock<Query>()
-        } else {
-            self.updateHandler = MKFirestoreCollectionListenerUpdateHandler<Query>()
-        }
+        self.onError = onError
+        self.onAdded = onAdded
+        self.onModified = onModified
+        self.onRemoved = onRemoved
+    }
+    
+    /// Convenience initializer for when added and modified objects share the same handling logic.
+    ///
+    /// - Parameters:
+    ///  - query: The query describing which collection to observe.
+    ///  - firestore: The Firestore wrapper responsible for executing the query.
+    ///  - onDidFinishInitialLoading: A closure called after the initial snapshot is loaded.
+    ///  - onError: A closure called on error.
+    ///  - onAddedOrModified: A closure called on both added and modified events.
+    ///  - onRemoved: A closure called when an object is removed.
+    ///
+    ///  - Important: Does not automatically start listening to the provided query unless ``startListening()`` is called.
+    public convenience init(
+        query: Query,
+        firestore: MKFirestore,
+        onDidFinishInitialLoading: VoidHandler? = nil,
+        onError: ErrorHandler? = nil,
+        onAddedOrModified: ChangeHandler? = nil,
+        onRemoved: ChangeHandler? = nil
+    ) {
+        self.init(
+            query: query,
+            firestore: firestore,
+            onDidFinishInitialLoading: onDidFinishInitialLoading,
+            onError: onError,
+            onAdded: onAddedOrModified,
+            onModified: onAddedOrModified,
+            onRemoved: onRemoved
+        )
     }
 
-    // MARK: - State Management
+    // MARK: - Public Methods
+
+    /// Starts listening to the Firestore collection using the provided query.
+    ///
+    /// Does nothing if already listening.
     public func startListening() {
         guard !isListening else { return }
         listenerRegistration = firestore.addCollectionListener(self)
     }
 
+    /// Stops listening to the Firestore collection and clears any loaded data.
     public func stopListening() {
         listenerRegistration?.remove()
         listenerRegistration = nil
@@ -90,210 +161,79 @@ public class MKFirestoreCollectionListener<Query: MKFirestoreCollectionQuery>: O
         didFinishInitialLoad = false
     }
 
+    /// Replaces the current query and stops listening to the previous one.
+    ///
+    /// - Parameter newQuery: The new query to use for listening.
+    /// - Important: Does not automatically start listening to the new query unless ``startListening()`` is called.
     public func replaceQuery(with newQuery: Query) {
         stopListening()
         self.query = newQuery
     }
-    
+
+    /// Returns a previously loaded object for the given document ID, if available.
+    ///
+    /// - Parameter id: The document ID.
+    /// - Returns: The decoded object, or `nil` if not found.
     public func getObject(by id: String) -> Query.BaseResultData? {
         return objectIdMap[id]
     }
 
-    // MARK: - Error Handling
+    /// Invokes the error handler with the provided error.
+    ///
+    /// - Parameter error: The error to handle.
     public func handle(_ error: Error) {
-        onErrorHandler?(error)
+        onError?(error)
     }
 
-    // MARK: - Object Change Handling
+    // MARK: - Internal Logic
+
+    /// Publishes the initial loading completion state.
+    ///
+    /// This is only called once per lifecycle.
     private func publishInitialLoading() {
         guard !didFinishInitialLoad else { return }
         didFinishInitialLoad = true
         onDidFinishInitialLoading?()
     }
 
-    // MARK: - Universal Change Handler
+    /// Processes incoming document changes from Firestore.
+    ///
+    /// - Parameters:
+    ///   - changes: An array of document change descriptors.
+    ///   - error: An optional error value if decoding or fetching failed.
+    ///   - query: The query associated with the update.
+    @MainActor
     public func handle(_ changes: [MKDocumentChange]?, error: Error?, for query: Query) {
         guard isListening && query.isEqual(to: self.query) else { return }
         
-        if let error  {
+        if let error {
             handle(error)
             return
         }
 
         guard let changes else { return }
 
-        updateHandler.handleChanges(
-            changes: changes,
-            initialObjectIdMap: objectIdMap,
-            onAddedOrModifiedProcessor: onAddedOrModifiedProcessor,
-            onError: handle(_:),
-            onWriteHandler: { objectIdMap = $0 }
-        )
-        
-    }
-}
-
-extension MKFirestoreCollectionListener {
-    func handleMockChanges(_ dataMap: [String: [Any]]) {
-        let key = query.firestoreReference.leafCollectionPath
-        if let objects = dataMap[key] as? [Query.BaseResultData] {
-            self.objectIdMap = objects.reduce(into: [String: Query.BaseResultData](), { partialResult, object in
-                partialResult.updateValue(object, forKey: "\(object.id)")
-            })
-        }
-    }
-}
-
-// MARK: - Update handling
-extension MKFirestoreCollectionListener {
-    
-}
-
-open class MKFirestoreCollectionListenerUpdateHandlerProtocol {
-    associatedtype Query: MKFirestoreCollectionQuery
-    typealias WriteHandler = ([String: Query.BaseResultData])->Void
-    
-    func handleChanges(
-        changes: [MKDocumentChange],
-        initialObjectIdMap: [String: Query.BaseResultData],
-        onAddedOrModifiedProcessor: ((Query.BaseResultData) async -> Query.BaseResultData?)?,
-        onError: ((Error)->Void)?,
-        onWriteHandler: @escaping WriteHandler
-    )
-    
-}
-
-public struct MKFirestoreCollectionListenerUpdateHandlerMock<Query: MKFirestoreCollectionQuery>: MKFirestoreCollectionListenerUpdateHandlerProtocol {
-    func handleChanges(
-        changes: [any MKDocumentChange],
-        initialObjectIdMap: [String : Query.BaseResultData],
-        onAddedOrModifiedProcessor: ((Query.BaseResultData) async -> Query.BaseResultData?)?,
-        onError: ((any Error) -> Void)?,
-        onWriteHandler: @escaping WriteHandler
-    ) {
-        var updatedObjectIdMap = initialObjectIdMap
-        // Run updates synchronously
         for change in changes {
             do {
                 let object = try change.object(as: Query.BaseResultData.self)
                 let key = "\(object.id)"
                 switch change.changeType {
-                case .added, .modified:
-                    updatedObjectIdMap[key] = object
+                case .added:
+                    objectIdMap[key] = object
+                    onAdded?(object)
+                case .modified:
+                    objectIdMap[key] = object
+                    onModified?(object)
                 case .removed:
-                    updatedObjectIdMap.removeValue(forKey: key)
+                    if let object = objectIdMap.removeValue(forKey: key) {
+                        onRemoved?(object)
+                    }
                 }
             } catch {
                 onError?(error)
             }
         }
+
+        publishInitialLoading()
     }
-}
-
-public struct MKFirestoreCollectionListenerUpdateHandler<Query: MKFirestoreCollectionQuery>: MKFirestoreCollectionListenerUpdateHandlerProtocol {
-    
-    let handlerQueue = UpdateHandlerQueue()
-    
-    func handleChanges(
-        changes: [any MKDocumentChange],
-        initialObjectIdMap: [String : Query.BaseResultData],
-        onAddedOrModifiedProcessor: ((Query.BaseResultData) async -> Query.BaseResultData?)?,
-        onError: ((any Error) -> Void)?,
-        onWriteHandler: @escaping ([String : Query.BaseResultData]) -> Void
-    ) {
-        Task {
-            // Run updates asynchronously
-            let updatedMap = await handlerQueue.handleChanges(
-                changes: changes,
-                objectIdMap: initialObjectIdMap,
-                onAddedOrModifiedProcessor: onAddedOrModifiedProcessor,
-                onError: onError
-            )
-
-            // Write updates on the main thread
-            await MainActor.run { onWriteHandler(updatedMap) }
-        }
-    }
-    
-    actor ResultsManager {
-        private var resultsDict: [String: Query.BaseResultData?] = [:]
-
-        func updateResults(forKey key: String, value: Query.BaseResultData?) {
-            resultsDict.updateValue(value, forKey: key)
-        }
-
-        func getResults() -> [String: Query.BaseResultData?] {
-            return resultsDict
-        }
-    }
-    
-    actor UpdateHandlerQueue {
-        func handleChanges(
-            changes: [MKDocumentChange],
-            objectIdMap: [String: Query.BaseResultData],
-            onAddedOrModifiedProcessor: ((Query.BaseResultData) async -> Query.BaseResultData?)?,
-            onError: ((Error)->Void)?
-        ) async -> [String: Query.BaseResultData] {
-            // Store all objects that are either added or modified
-            var modifiedObjects: [Query.BaseResultData] = []
-            // Local copy to change the objectIdMap
-            var updatedObjectIdMap = objectIdMap
-
-            // MARK: Step 1: Apply changes (add/modify/remove)
-            
-            for change in changes {
-                do {
-                    // Try to decode document into expected object
-                    let object = try change.object(as: Query.BaseResultData.self)
-                    let key = "\(object.id)"
-                    switch change.changeType {
-                    case .added, .modified:
-                        modifiedObjects.append(object)
-                        updatedObjectIdMap[key] = object
-                    case .removed:
-                        updatedObjectIdMap.removeValue(forKey: key)
-                    }
-                } catch {
-                    onError?(error)
-                }
-            }
-
-            // Return if there is no post-processing required
-            guard let onAddedOrModifiedProcessor else { return updatedObjectIdMap }
-
-            // MARK: Step 2: Run post-processing in parallel
-            
-            // Manager to serialize parallel writes to a shared results dictionary
-            let resultsManager = ResultsManager()
-            
-            await withTaskGroup(of: (String, Query.BaseResultData?).self) { group in
-                // For each modified object, run the processor which can modify / delete a result
-                for object in modifiedObjects {
-                    group.addTask {
-                        let updatedObject = await onAddedOrModifiedProcessor(object)
-                        return ("\(object.id)", updatedObject)
-                    }
-                }
-                // Each task group item can now update the corresponding item in the results map
-                for await (key, updatedObject) in group {
-                    await resultsManager.updateResults(forKey: key, value: updatedObject)
-                }
-            }
-            
-            // Wait for all parallel writes to happen
-            let finalResultsDict = await resultsManager.getResults()
-
-            // MARK: Step 3: Merge processed results
-            
-            for (key, object) in finalResultsDict {
-                if let object {
-                    updatedObjectIdMap[key] = object
-                } else {
-                    updatedObjectIdMap.removeValue(forKey: key)
-                }
-            }
-            return updatedObjectIdMap
-        }
-    }
-    
 }

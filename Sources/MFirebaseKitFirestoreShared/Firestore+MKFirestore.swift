@@ -13,7 +13,7 @@ extension MKFirestore {
 }
 
 @available(macOS 10.15, *)
-extension Firestore: MKFirestore {
+extension Firestore: @retroactive MKFirestore {
         
     public static func instance() -> MKFirestore {
         return Firestore.firestore()
@@ -150,7 +150,9 @@ extension Firestore: MKFirestore {
         }
         
         let registration: ListenerRegistration = firestoreQuery.addSnapshotListener { snapshot, error in
-            listener.handle(snapshot?.documentChanges, error: error, for: listener.query)
+            DispatchQueue.main.async {
+                listener.handle(snapshot?.documentChanges, error: error, for: listener.query)
+            }
         }
         
         return MKFirestoreListenerRegistration(registration: registration)

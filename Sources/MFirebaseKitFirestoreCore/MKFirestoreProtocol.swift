@@ -101,7 +101,8 @@ extension MKFirestore {
 
 // MARK: - Overloads
 extension MKFirestore {
-    // Queries
+    // MARK: Queries
+    
     public func execute<Q: MKFirestoreDocumentQuery>(_ query: Q) async -> MKFirestoreDocumentQueryResponse<Q> {
         return await executeDocumentQuery(query)
     }
@@ -118,17 +119,26 @@ extension MKFirestore {
         executeCollectionQuery(query, completion: completion)
     }
     
-    // Mutations
+    // MARK: Mutations
+    
     @discardableResult
     public func execute(_ mutation: MKFirestoreDocumentMutation) async -> MKFirestoreMutationResponse {
         return await executeMutation(mutation)
+    }
+    
+    public func execute(_ mutations: [MKFirestoreDocumentMutation]) async -> [MKFirestoreMutationResponse] {
+        var responses: [MKFirestoreMutationResponse] = []
+        for mutation in mutations {
+            responses.append(await execute(mutation))
+        }
+        return responses
     }
     
     func execute(_ mutation: MKFirestoreDocumentMutation, completion: @escaping (MKFirestoreMutationResponse)->Void) {
         executeMutation(mutation, completion: completion)
     }
     
-    // Deletions
+    // MARK: Deletions
     func execute(_ deletion: MKFirestoreDocumentDeletion) {
         executeDeletion(deletion)
     }

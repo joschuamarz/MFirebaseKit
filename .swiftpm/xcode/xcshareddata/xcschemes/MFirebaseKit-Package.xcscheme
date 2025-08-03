@@ -132,11 +132,6 @@
                BlueprintName = "MFirebaseKitFirestoreTests"
                ReferencedContainer = "container:">
             </BuildableReference>
-            <SkippedTests>
-               <Test
-                  Identifier = "MKFirestoreCollectionListenerTest">
-               </Test>
-            </SkippedTests>
          </TestableReference>
       </Testables>
    </TestAction>

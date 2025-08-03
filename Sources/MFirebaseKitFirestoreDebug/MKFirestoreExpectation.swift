@@ -9,16 +9,7 @@ import Foundation
 import XCTest
 import MFirebaseKitFirestoreCore
 
-extension Array {
-    mutating func removeFirst(where shouldBeRemoved: (Element) throws -> Bool) rethrows -> Element? {
-        if let index = try firstIndex(where: shouldBeRemoved) {
-            return remove(at: index)
-        }
-        return nil
-    }
-}
-
-public class MKFirestoreExpectation: XCTestExpectation {
+public class MKFirestoreExpectation: XCTestExpectation, @unchecked Sendable {
     public enum QueryType: String {
         case deletion, mutation, query, listener
     }
@@ -36,5 +27,14 @@ extension MKFirestoreExpectation {
     func isMatching(path: String, type: QueryType) -> Bool {
         return self.firestoreReference.rawPath == path
         && self.type == type
+    }
+}
+
+extension Array {
+    mutating func removeFirst(where shouldBeRemoved: (Element) throws -> Bool) rethrows -> Element? {
+        if let index = try firstIndex(where: shouldBeRemoved) {
+            return remove(at: index)
+        }
+        return nil
     }
 }
