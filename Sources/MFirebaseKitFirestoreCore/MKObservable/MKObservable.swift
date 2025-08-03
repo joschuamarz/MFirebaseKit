@@ -15,7 +15,7 @@ public protocol MKObserver: ObservableObject, NSObject {
 public class MKObservableService: ObservableObject {
     var cancellables: [ObjectIdentifier: AnyCancellable] = [:]
     
-    func register(observer: any MKObserver, debounce seconds: Double = 0) {
+    public func register(observer: any MKObserver, debounce seconds: Double = 0) {
         let cancellable = self.objectWillChange
             .debounce(for: .seconds(seconds), scheduler: RunLoop.main)
             .sink { (_) in
@@ -24,7 +24,7 @@ public class MKObservableService: ObservableObject {
         cancellables.updateValue(cancellable, forKey: ObjectIdentifier(observer))
     }
     
-    func register(observer: NSObject, debounce seconds: Double = 0, onChange: @escaping () -> Void) {
+    public func register(observer: NSObject, debounce seconds: Double = 0, onChange: @escaping () -> Void) {
         let cancellable = self.objectWillChange
             .debounce(for: .seconds(seconds), scheduler: RunLoop.main)
             .sink { _ in
@@ -33,7 +33,7 @@ public class MKObservableService: ObservableObject {
         cancellables.updateValue(cancellable, forKey: ObjectIdentifier(observer))
     }
     
-    func remove(observer: NSObject) {
+    public func remove(observer: NSObject) {
         if let cancellable = cancellables.removeValue(forKey: ObjectIdentifier(observer)) {
             cancellable.cancel()
         }
